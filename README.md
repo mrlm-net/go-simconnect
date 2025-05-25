@@ -1,26 +1,46 @@
-# Go SimConnect SDK for MSFS 2024
+# mrlm-net/go-simconnect
 
-A production-ready Go package for Microsoft Flight Simulator 2024 SimConnect integration, providing real-time flight data access and aircraft control through direct syscalls.
+Production-ready Go package for Microsoft Flight Simulator 2024 SimConnect integration, providing real-time flight data access and aircraft control through direct syscalls.
+
+|  |  |
+|---|---|
+| **Package name** | github.com/mrlm-net/go-simconnect |
+| **Package version** | ![GitHub Release](https://img.shields.io/github/v/release/mrlm-net/go-simconnect) |
+| **Latest version** | ![GitHub Release](https://img.shields.io/github/v/release/mrlm-net/go-simconnect) |
+| **License** | ![GitHub License](https://img.shields.io/github/license/mrlm-net/go-simconnect) |
+
+## Table of Contents
+
+- [Installation](#installation)
+- [Usage](#usage)
+- [Advanced Usage](#advanced-usage)
+- [API Reference](#api-reference)
+- [Flight Variables Reference](#flight-variables-reference)
+- [Error Handling](#error-handling)
+- [Performance & Architecture](#performance--architecture)
+- [Troubleshooting](#troubleshooting)
+- [Demo Applications](#demo-applications)
+- [Contributing](#contributing)
 
 ## Overview
 
 This package enables Go applications to connect to Microsoft Flight Simulator 2024 using the SimConnect API. It provides a high-level, thread-safe interface for real-time flight data collection, aircraft monitoring, and future extensions for events, weather, and AI traffic integration.
 
-## Features
+### Features
 
-### Core SimConnect Integration
+#### Core SimConnect Integration
 - ✅ **Connection Management** - Reliable connection handling with auto-reconnect support
 - ✅ **Data Definitions** - Flexible variable definition system
 - ✅ **Real-time Data Streaming** - High-frequency data collection (~20Hz)
 - ✅ **System State Monitoring** - Access to MSFS system information
 
-### Flight Data Management
+#### Flight Data Management
 - ✅ **15 Standard Variables** - Complete aircraft telemetry (position, speed, attitude, engine, controls)
 - ✅ **Thread-safe Operations** - Concurrent access with proper synchronization
 - ✅ **Error Handling & Recovery** - Comprehensive error tracking and statistics
 - ✅ **Custom Variables** - Add any SimConnect variable with proper units
 
-### Planned Features
+#### Planned Features
 - 🔄 **Event System** - Aircraft control and event subscription
 - 🔄 **Weather Integration** - Real-time weather and environment data
 - 🔄 **AI Traffic Monitoring** - Track AI aircraft and multiplayer traffic
@@ -28,7 +48,26 @@ This package enables Go applications to connect to Microsoft Flight Simulator 20
 - 🔄 **Data Persistence** - Logging and historical data storage
 - 🔄 **Web API** - HTTP/WebSocket server for web applications
 
-## Usage Examples
+## Installation
+
+```bash
+go get github.com/mrlm-net/go-simconnect
+```
+
+### Requirements
+
+- **Microsoft Flight Simulator 2024** - Must be installed and running
+- **Windows OS** - SimConnect is Windows-only  
+- **Go 1.19+** - For module support
+- **SimConnect.dll** - Automatically located or specify custom path
+
+### Quick Setup
+
+```go
+import "github.com/mrlm-net/go-simconnect/pkg/client"
+```
+
+## Usage
 
 ### Basic Connection
 
@@ -42,14 +81,14 @@ import (
 
 func main() {
     // Create and connect client
-    client := client.NewClient("My MSFS App")
-    if err := client.Open(); err != nil {
+    simclient := client.NewClient("My MSFS App")
+    if err := simclient.Open(); err != nil {
         log.Fatal("Failed to connect:", err)
     }
-    defer client.Close()
+    defer simclient.Close()
     
     // Check connection status
-    if client.IsOpen() {
+    if simclient.IsOpen() {
         log.Println("Connected to MSFS 2024!")
     }
 }
@@ -69,14 +108,14 @@ import (
 
 func main() {
     // Connect to MSFS
-    client := client.NewClient("Flight Monitor")
-    if err := client.Open(); err != nil {
+    simclient := client.NewClient("Flight Monitor")
+    if err := simclient.Open(); err != nil {
         log.Fatal(err)
     }
-    defer client.Close()
+    defer simclient.Close()
     
     // Create flight data manager
-    fdm := client.NewFlightDataManager(client)
+    fdm := client.NewFlightDataManager(simclient)
     
     // Add standard flight variables
     if err := fdm.AddStandardVariables(); err != nil {
@@ -110,11 +149,17 @@ func main() {
 }
 ```
 
+## Advanced Usage
+
+This package provides advanced features for comprehensive flight simulation integration. All components are designed for production use with proper error handling and thread-safe operations.
+
 ### Custom Variables
+
+Add any SimConnect variable with proper units and data types:
 
 ```go
 // Add custom simulation variables
-fdm := client.NewFlightDataManager(client)
+fdm := client.NewFlightDataManager(simclient)
 
 // Engine parameters
 fdm.AddVariable("Engine Temperature", "General Eng Exhaust Gas Temperature:1", "celsius")
@@ -133,16 +178,18 @@ fdm.Start()
 
 ### Error Handling
 
+Monitor errors during data collection with structured error information:
+
 ```go
 // Monitor errors during data collection
-fdm := client.NewFlightDataManager(client)
+fdm := client.NewFlightDataManager(simclient)
 fdm.AddStandardVariables()
 fdm.Start()
 
 go func() {
     for err := range fdm.GetErrors() {
         log.Printf("SimConnect error: %v", err)
-          // Handle specific error types
+        // Handle specific error types
         if simErr, ok := err.(*client.SimConnectError); ok {
             log.Printf("HRESULT: 0x%X, Function: %s", 
                 simErr.HResult, simErr.Function)
@@ -151,23 +198,66 @@ go func() {
 }()
 ```
 
-## Installation
+### System State Monitoring
 
-```bash
-go get github.com/mrlm-net/go-simconnect
-```
-
-### Requirements
-
-- **Microsoft Flight Simulator 2024** - Must be installed and running
-- **Windows OS** - SimConnect is Windows-only  
-- **Go 1.19+** - For module support
-- **SimConnect.dll** - Automatically located or specify custom path
-
-### Quick Setup
+Access detailed system information from the simulator:
 
 ```go
-import "github.com/mrlm-net/go-simconnect/pkg/client"
+// Request specific system states
+simclient.RequestSystemState(1, client.SystemStateSim)
+simclient.RequestSystemState(2, client.SystemStateAircraftLoaded)
+simclient.RequestSystemState(3, client.SystemStateFlightPlan)
+
+// Process responses
+for {
+    response, err := simclient.GetNextDispatch()
+    if err != nil {
+        log.Printf("Error: %v", err)
+        break
+    }
+    if response != nil {
+        fmt.Printf("State %d: %s\n", response.RequestID, response.StringValue)
+    }
+}
+```
+
+### Thread-Safe Operations
+
+All public methods are thread-safe and can be called concurrently:
+
+```go
+// Safe to call from multiple goroutines
+go func() { 
+    for {
+        altitude, _ := fdm.GetVariable("Altitude")
+        // Process altitude data
+    }
+}()
+
+go func() {
+    for {
+        variables := fdm.GetAllVariables()
+        // Process all variables  
+    }
+}()
+```
+
+### Performance Optimization
+
+Optimize data collection for your specific use case:
+
+```go
+// For high-frequency applications
+fdm := client.NewFlightDataManager(simclient)
+// Add only required variables
+fdm.AddVariable("Altitude", "Plane Altitude", "feet")
+fdm.AddVariable("Speed", "Airspeed Indicated", "knots")
+fdm.Start()
+
+// Monitor performance
+dataCount, errorCount, lastUpdate := fdm.GetStats()
+fmt.Printf("Rate: %.1f Hz, Errors: %d\n", 
+    float64(dataCount)/time.Since(startTime).Seconds(), errorCount)
 ```
 
 ## API Reference
@@ -449,6 +539,10 @@ go build -o cmd/test/test.exe cmd/test/main.go
 
 ## Contributing
 
+Contributions are welcomed and must follow Code of Conduct and common [Contributions guidelines](https://github.com/mrlm-net/.github/blob/main/docs/CONTRIBUTING.md).
+
+> If you'd like to report security issue please follow security guidelines.
+
 ### Development Guidelines
 - Follow standard Go conventions and idioms
 - Maintain thread-safety for all public APIs
@@ -472,3 +566,7 @@ When reporting issues, please include:
 - Complete error messages and HRESULT codes
 - Minimal reproduction code
 - Steps to reproduce the issue
+
+---
+
+All rights reserved © Martin Hrášek [<@marley-ma>](https://github.com/marley-ma) and WANTED.solutions s.r.o. [<@wanted-solutions>](https://github.com/wanted-solutions)
