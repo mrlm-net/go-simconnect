@@ -217,6 +217,12 @@ func (c *Client) AddToDataDefinition(defineID DataDefinitionID, datumName, units
 // RequestDataOnSimObject requests data for the specified simulation object
 // Implements SimConnect_RequestDataOnSimObject function
 func (c *Client) RequestDataOnSimObject(requestID SimObjectDataRequestID, defineID DataDefinitionID, objectID SIMCONNECT_OBJECT_ID, period SIMCONNECT_PERIOD) error {
+	return c.RequestDataOnSimObjectWithFlags(requestID, defineID, objectID, period, SIMCONNECT_DATA_REQUEST_FLAG_DEFAULT, 0, 0, 0)
+}
+
+// RequestDataOnSimObjectWithFlags requests data for the specified simulation object with flags and timing parameters
+// Implements SimConnect_RequestDataOnSimObject function with all parameters
+func (c *Client) RequestDataOnSimObjectWithFlags(requestID SimObjectDataRequestID, defineID DataDefinitionID, objectID SIMCONNECT_OBJECT_ID, period SIMCONNECT_PERIOD, flags SIMCONNECT_DATA_REQUEST_FLAG, origin, interval, limit uint32) error {
 	if !c.isOpen {
 		return fmt.Errorf("client is not open")
 	}
@@ -235,10 +241,10 @@ func (c *Client) RequestDataOnSimObject(requestID SimObjectDataRequestID, define
 		uintptr(defineID),  // DefineID
 		uintptr(objectID),  // ObjectID
 		uintptr(period),    // Period
-		uintptr(0),         // Flags (0 for default)
-		uintptr(0),         // origin (0 for default)
-		uintptr(0),         // interval (0 for default)
-		uintptr(0),         // limit (0 for default)
+		uintptr(flags),     // Flags
+		uintptr(origin),    // origin
+		uintptr(interval),  // interval
+		uintptr(limit),     // limit
 	)
 
 	hresult := uint32(r1)
