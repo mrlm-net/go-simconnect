@@ -148,9 +148,7 @@
                         <span id="flaps-pos" class="text-white font-mono">--%</span>
                     </div>
                 </div>
-            </div>
-
-            <!-- Position -->
+            </div>            <!-- Position -->
             <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
                 <div class="flex items-center space-x-2 mb-3">
                     <div class="text-lg">📍</div>
@@ -164,6 +162,86 @@
                     <div class="flex justify-between">
                         <span class="text-gray-400">Lon:</span>
                         <span id="longitude" class="text-white font-mono">--</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather & Game Information Section -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Weather -->
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div class="flex items-center space-x-2 mb-3">
+                    <div class="text-lg">🌤️</div>
+                    <h3 class="font-semibold text-gray-200">Weather</h3>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Temp:</span>
+                        <span id="ambient-temperature" class="text-white font-mono">--°C</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Pressure:</span>
+                        <span id="barometric-pressure" class="text-white font-mono">-- mb</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Wind:</span>
+                        <span id="wind-info" class="text-white font-mono">-- kts @ --°</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Visibility:</span>
+                        <span id="visibility" class="text-white font-mono">-- m</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Clouds:</span>
+                        <span id="cloud-coverage" class="text-white font-mono">--%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Aircraft Info -->
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div class="flex items-center space-x-2 mb-3">
+                    <div class="text-lg">✈️</div>
+                    <h3 class="font-semibold text-gray-200">Aircraft</h3>
+                </div>
+                <div class="space-y-2 text-sm">
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Type:</span>
+                        <span id="aircraft-title" class="text-white font-mono text-xs">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Ground:</span>
+                        <span id="on-ground" class="text-white font-mono">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">P.Brake:</span>
+                        <span id="parking-brake" class="text-white font-mono">--</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Simulation Info -->
+            <div class="bg-gray-800 rounded-lg p-4 border border-gray-700">
+                <div class="flex items-center space-x-2 mb-3">
+                    <div class="text-lg">🎮</div>
+                    <h3 class="font-semibold text-gray-200">Simulation</h3>
+                </div>
+                <div class="space-y-2 text-sm">                    <div class="flex justify-between">
+                        <span class="text-gray-400">Rate:</span>
+                        <span id="simulation-rate" class="text-white font-mono">--x</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Status:</span>
+                        <span id="sim-paused" class="text-white font-mono">--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Local:</span>
+                        <span id="local-time" class="text-white font-mono">--:--</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span class="text-gray-400">Zulu:</span>
+                        <span id="zulu-time" class="text-white font-mono">--:--Z</span>
                     </div>
                 </div>
             </div>
@@ -204,9 +282,8 @@
                 <div class="font-semibold">Connection Error</div>
                 <div id="error-message" class="text-sm text-red-200">--</div>
             </div>
-        </div>
-    </div>
+        </div>    </div>
 
-    <script src="static/app.js"></script>
+    <script src="/static/app.js"></script>
 </body>
 </html>

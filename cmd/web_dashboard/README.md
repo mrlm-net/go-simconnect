@@ -17,6 +17,18 @@ Beautiful real-time flight dashboard for Microsoft Flight Simulator 2024 with mo
 - Geographic coordinates and navigation data
 - Performance statistics and error monitoring
 
+🌤️ **Weather Information**
+- Ambient temperature and barometric pressure
+- Wind speed and direction
+- Visibility distance
+- Cloud coverage percentage
+
+🎮 **Game Information**
+- Aircraft type and identification
+- Simulation rate and pause status monitoring
+- Local and UTC (Zulu) time
+- Ground status and parking brake
+
 🔌 **WebSocket Integration**
 - Real-time data streaming at 2Hz
 - Automatic reconnection on connection loss
@@ -57,6 +69,24 @@ http://localhost:8080
 - **🔥 Engine** - RPM and throttle position  
 - **🎛️ Controls** - Gear and flap positions
 - **📍 Position** - Latitude and longitude coordinates
+
+### Weather Panel
+- **🌡️ Temperature** - Ambient temperature in Celsius
+- **📊 Pressure** - Barometric pressure in millibars
+- **💨 Wind** - Wind speed (knots) and direction (degrees)
+- **👁️ Visibility** - Visibility distance in meters
+- **☁️ Clouds** - Total cloud coverage percentage
+
+### Aircraft Panel
+- **✈️ Aircraft** - Current aircraft type
+- **🚁 Ground Status** - On ground indicator
+- **🅿️ Parking Brake** - Parking brake status
+
+### Simulation Panel
+- **⏱️ Sim Rate** - Current simulation rate multiplier
+- **⏸️ Status** - Simulation pause state (RUNNING/PAUSED)
+- **🕐 Local Time** - Local simulation time
+- **🌐 Zulu Time** - UTC time in simulation
 
 ### Statistics Panel
 - Data collection rate and total data points

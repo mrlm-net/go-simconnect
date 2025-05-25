@@ -1,5 +1,6 @@
 class FlightDashboard {
     constructor() {
+        console.log('🚀 FlightDashboard constructor called');
         this.ws = null;
         this.reconnectDelay = 1000;
         this.maxReconnectDelay = 30000;
@@ -12,12 +13,14 @@ class FlightDashboard {
     initializeWebSocket() {
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const wsUrl = `${protocol}//${window.location.host}/ws`;
+        console.log('🔌 Attempting WebSocket connection to:', wsUrl);
         
         try {
             this.ws = new WebSocket(wsUrl);
+            console.log('🔌 WebSocket object created');
             
             this.ws.onopen = () => {
-                console.log('✅ WebSocket connected');
+                console.log('✅ WebSocket connected successfully');
                 this.isConnected = true;
                 this.reconnectDelay = 1000;
                 this.updateConnectionStatus(true, 'Connected');
@@ -25,6 +28,7 @@ class FlightDashboard {
             };
             
             this.ws.onmessage = (event) => {
+                console.log('📨 WebSocket message received:', event.data.substring(0, 100) + '...');
                 try {
                     const data = JSON.parse(event.data);
                     this.updateFlightData(data);
@@ -33,8 +37,8 @@ class FlightDashboard {
                 }
             };
             
-            this.ws.onclose = () => {
-                console.log('🔌 WebSocket disconnected');
+            this.ws.onclose = (event) => {
+                console.log('🔌 WebSocket disconnected, code:', event.code, 'reason:', event.reason);
                 this.isConnected = false;
                 this.updateConnectionStatus(false, 'Disconnected');
                 this.scheduleReconnect();
@@ -44,7 +48,7 @@ class FlightDashboard {
                 console.error('❌ WebSocket error:', error);
                 this.updateConnectionStatus(false, 'Connection Error');
             };
-            
+
         } catch (error) {
             console.error('❌ Failed to create WebSocket:', error);
             this.updateConnectionStatus(false, 'Connection Failed');
@@ -98,14 +102,30 @@ class FlightDashboard {
         this.updateElement('pitch-angle', this.formatAngle(data.pitchAngle));
         this.updateElement('engine-rpm', data.engineRPM.toFixed(0));
         this.updateElement('throttle-pos', data.throttlePos.toFixed(0));
-        
-        // Controls
+          // Controls
         this.updateElement('gear-status', data.gearPosition > 0.5 ? 'DOWN' : 'UP');
         this.updateElement('flaps-pos', data.flapsPosition.toFixed(0));
         
         // Position
         this.updateElement('latitude', data.latitude.toFixed(4) + '°');
         this.updateElement('longitude', data.longitude.toFixed(4) + '°');
+        
+        // Weather data
+        this.updateElement('ambient-temperature', data.ambientTemperature.toFixed(1) + '°C');
+        this.updateElement('barometric-pressure', data.barometricPressure.toFixed(0) + ' mb');
+        this.updateElement('wind-info', `${data.windSpeed.toFixed(0)} kts @ ${data.windDirection.toFixed(0)}°`);
+        this.updateElement('visibility', (data.visibility / 1000).toFixed(1) + ' km');
+        this.updateElement('cloud-coverage', data.cloudCoverage.toFixed(0) + '%');
+        
+        // Aircraft info
+        this.updateElement('aircraft-title', data.aircraftTitle || 'Unknown');
+        this.updateElement('on-ground', data.onGround ? 'YES' : 'NO');
+        this.updateElement('parking-brake', data.parkingBrake ? 'SET' : 'OFF');
+          // Simulation info
+        this.updateElement('simulation-rate', data.simulationRate.toFixed(1) + 'x');
+        this.updateElement('sim-paused', data.simPaused ? 'PAUSED' : 'RUNNING');
+        this.updateElement('local-time', data.localTime || '--:--');
+        this.updateElement('zulu-time', data.zuluTime || '--:--Z');
         
         // Statistics
         this.updateElement('data-count', data.dataCount.toLocaleString());
@@ -154,13 +174,14 @@ class FlightDashboard {
             banner.classList.add('hidden');
         }
     }
-    
-    clearFlightData() {
+      clearFlightData() {
         // Clear all flight data displays
-        const fields = [
-            'altitude', 'indicated-speed', 'ground-speed', 'vertical-speed', 'heading',
+        const fields = [            'altitude', 'indicated-speed', 'ground-speed', 'vertical-speed', 'heading',
             'bank-angle', 'pitch-angle', 'engine-rpm', 'throttle-pos',
             'gear-status', 'flaps-pos', 'latitude', 'longitude',
+            'ambient-temperature', 'barometric-pressure', 'wind-info', 'visibility', 'cloud-coverage',
+            'aircraft-title', 'on-ground', 'parking-brake',
+            'simulation-rate', 'sim-paused', 'local-time', 'zulu-time',
             'data-count', 'error-count', 'error-count-large', 
             'update-rate', 'update-rate-large', 'last-update'
         ];
@@ -183,11 +204,21 @@ class FlightDashboard {
     }
 }
 
+console.log('🎯 App.js loaded successfully, initializing dashboard...');
+
 // Initialize dashboard when page loads
 document.addEventListener('DOMContentLoaded', () => {
-    console.log('🚀 Initializing MSFS 2024 Flight Dashboard...');
+    console.log('🚀 DOM loaded, creating FlightDashboard instance...');
     window.flightDashboard = new FlightDashboard();
 });
+
+// Also initialize immediately if DOM is already loaded
+if (document.readyState === 'loading') {
+    console.log('⏳ DOM still loading, waiting for DOMContentLoaded...');
+} else {
+    console.log('🚀 DOM already loaded, creating FlightDashboard instance immediately...');
+    window.flightDashboard = new FlightDashboard();
+}
 
 // Handle page visibility changes
 document.addEventListener('visibilitychange', () => {

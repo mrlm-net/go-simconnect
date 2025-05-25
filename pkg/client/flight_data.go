@@ -22,7 +22,6 @@ type FlightDataManager struct {
 	variables   []FlightVariable
 	definitions []DataDefinitionID
 	requests    []SimObjectDataRequestID
-	values      map[SimObjectDataRequestID]*FlightVariable
 	mutex       sync.RWMutex
 	running     bool
 	stopChan    chan bool
@@ -36,7 +35,6 @@ type FlightDataManager struct {
 func NewFlightDataManager(client *Client) *FlightDataManager {
 	return &FlightDataManager{
 		client:    client,
-		values:    make(map[SimObjectDataRequestID]*FlightVariable),
 		stopChan:  make(chan bool),
 		errorChan: make(chan error, 10), // Buffered channel for errors
 	}
@@ -49,12 +47,14 @@ func (fdm *FlightDataManager) AddVariable(name, simVar, units string) error {
 
 	if fdm.running {
 		return fmt.Errorf("cannot add variables while data manager is running")
-	}
-
-	// Create unique IDs for this variable
+	} // Create unique IDs for this variable with proper spacing to avoid conflicts
+	// According to Microsoft docs, RequestID should be unique for each request
+	// Using larger, more predictable gaps to ensure no collisions
 	index := len(fdm.variables)
 	defineID := DataDefinitionID(index + 1)
-	requestID := SimObjectDataRequestID(index + 1)
+	// Use even larger gaps for RequestIDs - start at 1000 and increment by 1000
+	// This ensures no conflicts and makes debugging easier
+	requestID := SimObjectDataRequestID(1000 + (index * 1000))
 
 	// Add to SimConnect data definition
 	if err := fdm.client.AddToDataDefinition(defineID, simVar, units, SIMCONNECT_DATATYPE_FLOAT64); err != nil {
@@ -67,12 +67,10 @@ func (fdm *FlightDataManager) AddVariable(name, simVar, units string) error {
 		SimVar: simVar,
 		Units:  units,
 		Value:  0.0,
-	}
-	// Store in our collections
+	} // Store in our collections
 	fdm.variables = append(fdm.variables, variable)
 	fdm.definitions = append(fdm.definitions, defineID)
 	fdm.requests = append(fdm.requests, requestID)
-	// Note: We'll set up the values map pointers after all variables are added
 
 	return nil
 }
@@ -121,18 +119,24 @@ func (fdm *FlightDataManager) Start() error {
 
 	if len(fdm.variables) == 0 {
 		return fmt.Errorf("no variables added")
-	}
-
-	// Set up the values map with correct pointers after all variables are added
+	} // Request data for all variables using optimized settings based on Microsoft SimConnect documentation
+	// Using SIMCONNECT_PERIOD_SECOND for consistent 1Hz updates and CHANGED flag to reduce unnecessary data transmission
+	// This combination provides the best performance for flight data monitoring applications
 	for i, requestID := range fdm.requests {
-		fdm.values[requestID] = &fdm.variables[i]
-	}
-
-	// Request data for all variables
-	for i, requestID := range fdm.requests {
-		if err := fdm.client.RequestDataOnSimObject(requestID, fdm.definitions[i], SIMCONNECT_OBJECT_ID_USER, SIMCONNECT_PERIOD_SIM_FRAME); err != nil {
+		if err := fdm.client.RequestDataOnSimObjectWithFlags(
+			requestID,
+			fdm.definitions[i],
+			SIMCONNECT_OBJECT_ID_USER,
+			SIMCONNECT_PERIOD_SECOND,
+			SIMCONNECT_DATA_REQUEST_FLAG_CHANGED,
+			0, // origin (unused for SECOND period)
+			0, // interval (unused for SECOND period)
+			0, // limit (unused for SECOND period)
+		); err != nil {
 			return fmt.Errorf("failed to request data for variable %s: %v", fdm.variables[i].Name, err)
 		}
+		fmt.Printf("DEBUG: Requested data for %s with RequestID %d, DefineID %d using PERIOD_SECOND + CHANGED flag\n",
+			fdm.variables[i].Name, requestID, fdm.definitions[i])
 	}
 
 	fdm.running = true
@@ -175,11 +179,9 @@ func (fdm *FlightDataManager) GetAllVariables() []FlightVariable {
 	fdm.mutex.RLock()
 	defer fdm.mutex.RUnlock()
 
-	// Return current values from the variables array (which gets updated in place)
+	// Return current values from the variables array
 	result := make([]FlightVariable, len(fdm.variables))
-	for i, variable := range fdm.variables {
-		result[i] = variable
-	}
+	copy(result, fdm.variables)
 	return result
 }
 
@@ -249,16 +251,37 @@ func (fdm *FlightDataManager) collectData() {
 		if len(simData) < 8 {
 			return
 		}
-
 		// Find the variable this data corresponds to
 		requestID := SimObjectDataRequestID(header.DwRequestID)
 		fdm.mutex.Lock()
-		if variable, exists := fdm.values[requestID]; exists {
+
+		// Find the variable index by requestID
+		variableIndex := -1
+		for i, reqID := range fdm.requests {
+			if reqID == requestID {
+				variableIndex = i
+				break
+			}
+		}
+
+		// Debug logging to track what's happening
+		if variableIndex >= 0 {
+			// Successfully found variable
+		} else {
+			// This indicates a RequestID mismatch - log it for debugging
+			fmt.Printf("DEBUG: Received unknown RequestID %d, known RequestIDs: %v\n", requestID, fdm.requests)
+		}
+		if variableIndex >= 0 && variableIndex < len(fdm.variables) {
 			value := *(*float64)(unsafe.Pointer(&simData[0]))
-			variable.Value = value
-			variable.Updated = time.Now()
+			// Update the variable directly in the slice
+			fdm.variables[variableIndex].Value = value
+			fdm.variables[variableIndex].Updated = time.Now()
 			fdm.dataCount++
 			fdm.lastUpdate = time.Now()
+
+			// Debug: Log which variable was updated
+			fmt.Printf("DEBUG: Updated %s = %.2f (RequestID: %d)\n",
+				fdm.variables[variableIndex].Name, value, requestID)
 		}
 		fdm.mutex.Unlock()
 	}
