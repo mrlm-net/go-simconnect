@@ -5,30 +5,27 @@ import (
 	"log"
 	"time"
 
-	"github.com/mrlm-net/go-simconnect/pkg/simconnect"
+	"github.com/mrlm-net/go-simconnect/pkg/client"
 )
 
-func main() {
-	// Create a new SimConnect client
-	client := simconnect.NewClient("Go SimConnect Example")
+func main() { // Create a new SimConnect client
+	simclient := client.NewClientWithDLLPath("Go SimConnect Example", "C:\\MSFS 2024 SDK\\SimConnect SDK\\lib\\SimConnect.dll")
 
 	fmt.Println("Attempting to connect to SimConnect...")
-
 	// Open connection to SimConnect
-	if err := client.Open(); err != nil {
+	if err := simclient.Open(); err != nil {
 		log.Fatalf("Failed to open SimConnect: %v", err)
 	}
 
-	fmt.Printf("Successfully connected to SimConnect as '%s'\n", client.GetName())
-	fmt.Printf("Connection handle: 0x%X\n", client.GetHandle())
-
+	fmt.Printf("Successfully connected to SimConnect as '%s'\n", simclient.GetName())
+	fmt.Printf("Connection handle: 0x%X\n", simclient.GetHandle())
 	// Example: Request system state information
-	requestID := simconnect.DataRequestID(1)
+	requestID := client.DataRequestID(1)
 
 	fmt.Println("\nRequesting system states...")
 
 	// Request simulation state
-	if err := client.RequestSystemState(requestID, simconnect.SystemStateSim); err != nil {
+	if err := simclient.RequestSystemState(requestID, client.SystemStateSim); err != nil {
 		log.Printf("Failed to request simulation state: %v", err)
 	} else {
 		fmt.Println("✓ Simulation state requested")
@@ -36,7 +33,7 @@ func main() {
 
 	// Request aircraft loaded
 	requestID++
-	if err := client.RequestSystemState(requestID, simconnect.SystemStateAircraftLoaded); err != nil {
+	if err := simclient.RequestSystemState(requestID, client.SystemStateAircraftLoaded); err != nil {
 		log.Printf("Failed to request aircraft loaded: %v", err)
 	} else {
 		fmt.Println("✓ Aircraft loaded state requested")
@@ -44,7 +41,7 @@ func main() {
 
 	// Request flight plan
 	requestID++
-	if err := client.RequestSystemState(requestID, simconnect.SystemStateFlightPlan); err != nil {
+	if err := simclient.RequestSystemState(requestID, client.SystemStateFlightPlan); err != nil {
 		log.Printf("Failed to request flight plan: %v", err)
 	} else {
 		fmt.Println("✓ Flight plan state requested")
@@ -53,10 +50,9 @@ func main() {
 	// Give some time for requests to process
 	fmt.Println("\nWaiting for responses...")
 	time.Sleep(2 * time.Second)
-
 	// Close the connection
 	fmt.Println("\nClosing SimConnect connection...")
-	if err := client.Close(); err != nil {
+	if err := simclient.Close(); err != nil {
 		log.Fatalf("Failed to close SimConnect: %v", err)
 	}
 

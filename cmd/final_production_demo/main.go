@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
-	"github.com/mrlm-net/go-simconnect/pkg/simconnect"
+	"github.com/mrlm-net/go-simconnect/pkg/client"
 )
 
 func main() {
@@ -16,31 +15,25 @@ func main() {
 	fmt.Println("     Using Optimized Separate Data Definitions Approach")
 	fmt.Println("")
 
-	// Get the current working directory to locate SimConnect.dll
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get working directory: %v", err)
-	}
-
-	dllPath := filepath.Join(wd, "lib", "SimConnect.dll")
+	// Use the MSFS 2024 SDK SimConnect.dll
+	dllPath := "C:\\MSFS 2024 SDK\\SimConnect SDK\\lib\\SimConnect.dll"
 	if _, err := os.Stat(dllPath); os.IsNotExist(err) {
 		log.Fatalf("SimConnect.dll not found at %s", dllPath)
 	}
-
 	// Create a new SimConnect client
-	client := simconnect.NewClientWithDLLPath("Production Flight Data Demo", dllPath)
+	simclient := client.NewClientWithDLLPath("Production Flight Data Demo", dllPath)
 
-	if err := client.Open(); err != nil {
+	if err := simclient.Open(); err != nil {
 		fmt.Printf("❌ Failed to connect to SimConnect: %v\n", err)
 		fmt.Println("💡 Make sure MSFS 2024 is running and SimConnect is enabled")
 		return
 	}
-	defer client.Close()
+	defer simclient.Close()
 
 	fmt.Println("✅ Successfully connected to SimConnect!")
 
 	// Create flight data manager
-	fdm := simconnect.NewFlightDataManager(client)
+	fdm := client.NewFlightDataManager(simclient)
 
 	// Add comprehensive set of flight variables
 	fmt.Println("📊 Setting up flight data variables...")
@@ -234,5 +227,5 @@ func main() {
 
 	fmt.Println("\n✅ Production SimConnect implementation demonstration completed successfully!")
 
-	client.SendDebugMessage(fmt.Sprintf("Production demo completed. Collected %d data points with %d errors.", finalDataCount, finalErrorCount))
+	simclient.SendDebugMessage(fmt.Sprintf("Production demo completed. Collected %d data points with %d errors.", finalDataCount, finalErrorCount))
 }
