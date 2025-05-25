@@ -4,22 +4,16 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
-	"github.com/mrlm-net/go-simconnect/pkg/simconnect"
+	"github.com/mrlm-net/go-simconnect/pkg/client"
 )
 
 func main() {
 	fmt.Println("=== SimConnect Go Client Test ===")
 
-	// Get the current working directory to locate SimConnect.dll
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get working directory: %v", err)
-	}
-
-	dllPath := filepath.Join(wd, "lib", "SimConnect.dll")
+	// Use the MSFS 2024 SDK SimConnect.dll
+	dllPath := "C:\\MSFS 2024 SDK\\SimConnect SDK\\lib\\SimConnect.dll"
 	fmt.Printf("Looking for SimConnect.dll at: %s\n", dllPath)
 
 	// Check if DLL exists
@@ -28,15 +22,14 @@ func main() {
 	}
 	fmt.Println("✓ SimConnect.dll found")
 	// Create a new SimConnect client with the local DLL
-	client := simconnect.NewClientWithDLLPath("Go Test Client", dllPath)
-	fmt.Printf("✓ Client created: '%s'\n", client.GetName())
-	fmt.Printf("✓ Initial connection state: %v\n", client.IsOpen())
+	simclient := client.NewClientWithDLLPath("Go Test Client", dllPath)
+	fmt.Printf("✓ Client created: '%s'\n", simclient.GetName())
+	fmt.Printf("✓ Initial connection state: %v\n", simclient.IsOpen())
 
 	fmt.Println("\n=== Testing Connection ===")
-
 	// Try to open connection
 	fmt.Println("Attempting to connect to SimConnect...")
-	if err := client.Open(); err != nil {
+	if err := simclient.Open(); err != nil {
 		// This might fail if MSFS is not running, which is expected
 		fmt.Printf("❌ Failed to open SimConnect connection: %v\n", err)
 		fmt.Println("\nNote: This is expected if Microsoft Flight Simulator is not running.")
@@ -48,26 +41,25 @@ func main() {
 	}
 
 	fmt.Printf("✅ Successfully connected to SimConnect!\n")
-	fmt.Printf("✓ Connection handle: 0x%X\n", client.GetHandle())
-	fmt.Printf("✓ Connection state: %v\n", client.IsOpen())
-
+	fmt.Printf("✓ Connection handle: 0x%X\n", simclient.GetHandle())
+	fmt.Printf("✓ Connection state: %v\n", simclient.IsOpen())
 	fmt.Println("\n=== Testing System State Requests ===")
 
 	// Test requesting system states
 	testRequests := []struct {
 		name  string
 		state string
-		id    simconnect.DataRequestID
+		id    client.DataRequestID
 	}{
-		{"Simulation State", simconnect.SystemStateSim, 1},
-		{"Aircraft Loaded", simconnect.SystemStateAircraftLoaded, 2},
-		{"Flight Plan", simconnect.SystemStateFlightPlan, 3},
-		{"Dialog Mode", simconnect.SystemStateDialogMode, 4},
-		{"Flight Loaded", simconnect.SystemStateFlightLoaded, 5},
+		{"Simulation State", client.SystemStateSim, 1},
+		{"Aircraft Loaded", client.SystemStateAircraftLoaded, 2},
+		{"Flight Plan", client.SystemStateFlightPlan, 3},
+		{"Dialog Mode", client.SystemStateDialogMode, 4},
+		{"Flight Loaded", client.SystemStateFlightLoaded, 5},
 	}
 	for _, test := range testRequests {
 		fmt.Printf("Requesting %s...", test.name)
-		if err := client.RequestSystemState(test.id, test.state); err != nil {
+		if err := simclient.RequestSystemState(test.id, test.state); err != nil {
 			fmt.Printf(" ❌ Failed: %v\n", err)
 		} else {
 			fmt.Printf(" ✅ Success\n")
@@ -81,11 +73,10 @@ func main() {
 	// Give SimConnect some time to process requests
 	fmt.Println("⏳ Waiting for responses...")
 	time.Sleep(500 * time.Millisecond)
-
 	// Try to read responses for a few seconds
 	responseCount := 0
 	for attempts := 0; attempts < 20; attempts++ {
-		response, err := client.GetNextDispatch()
+		response, err := simclient.GetNextDispatch()
 		if err != nil {
 			fmt.Printf("❌ Error reading response: %v\n", err)
 			break
@@ -205,11 +196,10 @@ func main() {
 		fmt.Println("   - System state data is being retrieved successfully")
 		fmt.Println("   - The GetNextDispatch() function fix was successful!")
 	}
-
 	fmt.Println("\n=== Keeping Connection Open for Inspection ===")
 	fmt.Println("✓ Connection is now active and can be seen in SimConnect Inspector")
 	fmt.Println("✓ You can now check the SimConnect Inspector in MSFS")
-	fmt.Printf("✓ Client '%s' with handle 0x%X should be visible\n", client.GetName(), client.GetHandle())
+	fmt.Printf("✓ Client '%s' with handle 0x%X should be visible\n", simclient.GetName(), simclient.GetHandle())
 	fmt.Println("")
 
 	// Keep connection open for inspection
@@ -218,16 +208,15 @@ func main() {
 		time.Sleep(1 * time.Second)
 	}
 	fmt.Printf("\r✓ Inspection period complete                                                     \n")
-
 	fmt.Println("\n=== Testing Connection Close ===")
 
 	// Close the connection
 	fmt.Println("Closing SimConnect connection...")
-	if err := client.Close(); err != nil {
+	if err := simclient.Close(); err != nil {
 		fmt.Printf("❌ Failed to close connection: %v\n", err)
 	} else {
 		fmt.Println("✅ Connection closed successfully")
-		fmt.Printf("✓ Connection state: %v\n", client.IsOpen())
+		fmt.Printf("✓ Connection state: %v\n", simclient.IsOpen())
 	}
 
 	fmt.Println("\n=== Test Complete ===")

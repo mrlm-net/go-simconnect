@@ -4,10 +4,9 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"path/filepath"
 	"time"
 
-	"github.com/mrlm-net/go-simconnect/pkg/simconnect"
+	"github.com/mrlm-net/go-simconnect/pkg/client"
 )
 
 func main() {
@@ -16,32 +15,25 @@ func main() {
 	fmt.Println("     Production-Ready Implementation")
 	fmt.Println("")
 
-	// Get the current working directory to locate SimConnect.dll
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatalf("Failed to get working directory: %v", err)
-	}
-
-	dllPath := filepath.Join(wd, "lib", "SimConnect.dll")
+	// Use the MSFS 2024 SDK SimConnect.dll
+	dllPath := "C:\\MSFS 2024 SDK\\SimConnect SDK\\lib\\SimConnect.dll"
 	if _, err := os.Stat(dllPath); os.IsNotExist(err) {
 		log.Fatalf("SimConnect.dll not found at %s", dllPath)
 	}
-
 	// Create a new SimConnect client
-	client := simconnect.NewClientWithDLLPath("Complete Flight Data Demo", dllPath)
+	simclient := client.NewClientWithDLLPath("Complete Flight Data Demo", dllPath)
 
-	if err := client.Open(); err != nil {
+	if err := simclient.Open(); err != nil {
 		fmt.Printf("ERROR: Failed to connect to SimConnect: %v\n", err)
 		fmt.Println("NOTE: Make sure MSFS 2024 is running and SimConnect is enabled")
 		return
 	}
-	defer client.Close()
+	defer simclient.Close()
 
 	fmt.Println("SUCCESS: Connected to SimConnect!")
 
-	// Create flight data manager and add all standard variables
-	fmt.Println("SETUP: Setting up comprehensive flight data collection...")
-	fdm := simconnect.NewFlightDataManager(client)
+	// Create flight data manager and add all standard variables	fmt.Println("SETUP: Setting up comprehensive flight data collection...")
+	fdm := client.NewFlightDataManager(simclient)
 
 	// Add all standard flight variables at once
 	if err := fdm.AddStandardVariables(); err != nil {
@@ -97,10 +89,8 @@ func main() {
 				speedVars := []string{"Indicated Airspeed", "True Airspeed", "Ground Speed", "Vertical Speed"}
 				attitudeVars := []string{"Heading Magnetic", "Heading True", "Bank Angle", "Pitch Angle"}
 				engineVars := []string{"Engine RPM", "Throttle Position"}
-				controlVars := []string{"Gear Position", "Flaps Position"}
-
-				// Create lookup map for quick access
-				varMap := make(map[string]simconnect.FlightVariable)
+				controlVars := []string{"Gear Position", "Flaps Position"} // Create lookup map for quick access
+				varMap := make(map[string]client.FlightVariable)
 				for _, variable := range variables {
 					varMap[variable.Name] = variable
 				}
@@ -243,9 +233,8 @@ func main() {
 	fmt.Println("   * All standard MSFS 2024 flight variables: Fully supported")
 	fmt.Println("   * Thread-safe concurrent data access: Properly implemented")
 	fmt.Println("   * Error handling and resilience: Production-ready")
-
 	fmt.Println("\nSimConnect integration implementation: COMPLETE AND SUCCESSFUL!")
 
-	client.SendDebugMessage(fmt.Sprintf("Complete demo finished. Collected %d data points across %d variables with %d errors.",
+	simclient.SendDebugMessage(fmt.Sprintf("Complete demo finished. Collected %d data points across %d variables with %d errors.",
 		finalDataCount, len(finalVariables), finalErrorCount))
 }
