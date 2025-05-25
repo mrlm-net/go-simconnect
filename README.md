@@ -46,7 +46,7 @@ This package enables Go applications to connect to Microsoft Flight Simulator 20
 - 🔄 **AI Traffic Monitoring** - Track AI aircraft and multiplayer traffic
 - 🔄 **Flight Planning** - Integration with flight plans and navigation
 - 🔄 **Data Persistence** - Logging and historical data storage
-- 🔄 **Web API** - HTTP/WebSocket server for web applications
+- ✅ **Web API** - HTTP/WebSocket server for web applications *(Available in web_dashboard demo)*
 
 ## Installation
 
@@ -259,6 +259,29 @@ dataCount, errorCount, lastUpdate := fdm.GetStats()
 fmt.Printf("Rate: %.1f Hz, Errors: %d\n", 
     float64(dataCount)/time.Since(startTime).Seconds(), errorCount)
 ```
+
+### Web API Integration
+
+Create web dashboards and browser-based applications using HTTP and WebSocket APIs:
+
+```go
+// HTTP server with WebSocket for real-time data
+http.HandleFunc("/ws", handleWebSocket)
+http.Handle("/static/", http.FileServer(http.Dir("static/")))
+
+// WebSocket handler for real-time flight data
+func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+    conn, _ := upgrader.Upgrade(w, r, nil)
+    ticker := time.NewTicker(500 * time.Millisecond)
+    
+    for range ticker.C {
+        data := collectFlightData() // Your flight data collection
+        conn.WriteJSON(data)
+    }
+}
+```
+
+*See `cmd/web_dashboard/` for a complete implementation with beautiful Tailwind CSS UI.*
 
 ## API Reference
 
@@ -535,6 +558,22 @@ Comprehensive test suite for SimConnect functionality:
 # Build and run
 go build -o cmd/test/test.exe cmd/test/main.go
 ./cmd/test/test.exe
+```
+
+### Web Dashboard (`cmd/web_dashboard/`)
+Beautiful real-time web dashboard with modern UI:
+- Gorgeous Tailwind CSS interface with gradient cards
+- Real-time WebSocket data streaming at 2Hz
+- Responsive design for desktop and mobile
+- Connection status monitoring and error handling
+- Performance statistics and data visualization
+
+```bash
+# Build and run
+go build -o cmd/web_dashboard/dashboard.exe cmd/web_dashboard/main.go
+./cmd/web_dashboard/dashboard.exe
+
+# Open browser to: http://localhost:8080
 ```
 
 ## Contributing
