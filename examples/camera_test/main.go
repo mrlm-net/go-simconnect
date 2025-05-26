@@ -79,7 +79,7 @@ func main() {
 	for i, step := range cameraSequence {
 		fmt.Printf("📹 Step %d: %s (State %.0f)\n", i+1, step.description, step.state)
 		fmt.Printf("   🎯 Target: %s View\n", step.viewName)
-		
+
 		// Send the camera change command
 		fmt.Printf("   🎛️  Setting camera state to: %.0f\n", step.state)
 		if err := fdm.SetVariable("Camera State", step.state); err != nil {
@@ -95,7 +95,7 @@ func main() {
 		cameraVar, found := fdm.GetVariable("Camera State")
 		if found {
 			fmt.Printf("   📖 Camera State readback: %.0f\n", cameraVar.Value)
-			
+
 			if cameraVar.Value == step.state {
 				fmt.Printf("   🎯 SUCCESS: Camera state changed to %.0f (%s) as expected\n", step.state, step.viewName)
 			} else {
@@ -123,7 +123,7 @@ func main() {
 
 	fmt.Println("🏁 Camera Control Test Sequence COMPLETED!")
 	fmt.Println()
-	
+
 	// Final verification
 	cameraVar, found = fdm.GetVariable("Camera State")
 	if found {
@@ -164,34 +164,31 @@ func main() {
 	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
-	for {
-		select {
-		case <-ticker.C:
-			cameraVar, found := fdm.GetVariable("Camera State")
-			if found {
-				var viewName string
-				switch cameraVar.Value {
-				case 2:
-					viewName = "Cockpit"
-				case 3:
-					viewName = "External"
-				case 4:
-					viewName = "Wing"
-				case 5:
-					viewName = "Tail"
-				case 6:
-					viewName = "Tower"
-				default:
-					viewName = fmt.Sprintf("Unknown (%.0f)", cameraVar.Value)
-				}
-				
-				age := time.Since(cameraVar.Updated)
-				fmt.Printf("[%s] Camera: %.0f (%s) - Updated %v ago\n", 
-					time.Now().Format("15:04:05"), 
-					cameraVar.Value, 
-					viewName,
-					age.Truncate(time.Second))
+	for range ticker.C {
+		cameraVar, found := fdm.GetVariable("Camera State")
+		if found {
+			var viewName string
+			switch cameraVar.Value {
+			case 2:
+				viewName = "Cockpit"
+			case 3:
+				viewName = "External"
+			case 4:
+				viewName = "Wing"
+			case 5:
+				viewName = "Tail"
+			case 6:
+				viewName = "Tower"
+			default:
+				viewName = fmt.Sprintf("Unknown (%.0f)", cameraVar.Value)
 			}
+
+			age := time.Since(cameraVar.Updated)
+			fmt.Printf("[%s] Camera: %.0f (%s) - Updated %v ago\n",
+				time.Now().Format("15:04:05"),
+				cameraVar.Value,
+				viewName,
+				age.Truncate(time.Second))
 		}
 	}
 }

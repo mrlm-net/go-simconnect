@@ -92,14 +92,39 @@ func initSimConnect() {
 		log.Println("💡 Make sure MSFS 2024 is running and SimConnect is enabled")
 		return
 	}
-
 	// Create flight data manager
 	fdm = client.NewFlightDataManager(simclient)
 
-	// Add standard variables
-	if err := fdm.AddStandardVariables(); err != nil {
-		log.Printf("❌ Failed to add variables: %v", err)
-		return
+	// Add flight data variables
+	flightVars := []struct {
+		name     string
+		simVar   string
+		units    string
+		writable bool
+	}{
+		{"Altitude", "Plane Altitude", "feet", false},
+		{"Indicated Airspeed", "Airspeed Indicated", "knots", false},
+		{"True Airspeed", "Airspeed True", "knots", false},
+		{"Ground Speed", "Ground Velocity", "knots", false},
+		{"Latitude", "Plane Latitude", "degrees", false},
+		{"Longitude", "Plane Longitude", "degrees", false},
+		{"Heading Magnetic", "Plane Heading Degrees Magnetic", "degrees", false},
+		{"Heading True", "Plane Heading Degrees True", "degrees", false},
+		{"Bank Angle", "Plane Bank Degrees", "degrees", false},
+		{"Pitch Angle", "Plane Pitch Degrees", "degrees", false},
+		{"Vertical Speed", "Vertical Speed", "feet per minute", false},
+		{"Engine RPM", "General Eng RPM:1", "rpm", false},
+		{"Throttle Position", "General Eng Throttle Lever Position:1", "percent", true},
+		{"Gear Position", "Gear Handle Position", "bool", true},
+		{"Flaps Position", "Flaps Handle Percent", "percent", true},
+	}
+
+	for _, flightVar := range flightVars {
+		if err := fdm.AddVariableWithWritable(flightVar.name, flightVar.simVar, flightVar.units, flightVar.writable); err != nil {
+			log.Printf("⚠️  Warning: Failed to add flight variable %s: %v", flightVar.name, err)
+		} else {
+			log.Printf("✅ Successfully added flight variable: %s", flightVar.name)
+		}
 	}
 	// Add weather variables
 	weatherVars := []struct {
