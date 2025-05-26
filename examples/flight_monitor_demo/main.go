@@ -29,11 +29,11 @@ type FlightMonitor struct {
 
 // Dashboard handles the visual display and user interface
 type Dashboard struct {
-	mu           sync.RWMutex
-	eventCounts  map[string]int
-	lastEvents   map[string]time.Time
-	totalEvents  int
-	lastUpdate   time.Time
+	mu          sync.RWMutex
+	eventCounts map[string]int
+	lastEvents  map[string]time.Time
+	totalEvents int
+	lastUpdate  time.Time
 }
 
 // StateTracker monitors simulation state changes
@@ -100,7 +100,7 @@ func main() {
 
 func (fm *FlightMonitor) initializeSimConnect() error {
 	fmt.Println("STEP 1: Connecting to Microsoft Flight Simulator...")
-	
+
 	// Use MSFS 2024 SDK DLL path
 	dllPath := `C:\MSFS 2024 SDK\SimConnect SDK\lib\SimConnect.dll`
 	fm.client = client.NewClientWithDLLPath("FlightMonitorDemo", dllPath)
@@ -129,26 +129,26 @@ func (fm *FlightMonitor) setupManagers() error {
 		writable bool
 	}{
 		// Core flight data
-		"Altitude":         {"INDICATED ALTITUDE", "feet", false},
-		"Airspeed":         {"AIRSPEED INDICATED", "knots", false},
-		"Heading":          {"HEADING INDICATOR", "degrees", false},
-		"Vertical Speed":   {"VERTICAL SPEED", "feet per minute", false},
-		
+		"Altitude":       {"INDICATED ALTITUDE", "feet", false},
+		"Airspeed":       {"AIRSPEED INDICATED", "knots", false},
+		"Heading":        {"HEADING INDICATOR", "degrees", false},
+		"Vertical Speed": {"VERTICAL SPEED", "feet per minute", false},
+
 		// System state
-		"Sim Paused":       {"SIM PAUSED", "bool", false},
-		"Sim Running":      {"SIM", "bool", false},
-		"Ground Speed":     {"GROUND VELOCITY", "knots", false},
-		
+		"Sim Paused":   {"SIM PAUSED", "bool", false},
+		"Sim Running":  {"SIM", "bool", false},
+		"Ground Speed": {"GROUND VELOCITY", "knots", false},
+
 		// Engine data
-		"Engine Running":   {"GENERAL ENG COMBUSTION:1", "bool", false},
-		"Throttle":         {"GENERAL ENG THROTTLE LEVER POSITION:1", "percent", true},
-		
+		"Engine Running": {"GENERAL ENG COMBUSTION:1", "bool", false},
+		"Throttle":       {"GENERAL ENG THROTTLE LEVER POSITION:1", "percent", true},
+
 		// Aircraft state
-		"On Ground":        {"SIM ON GROUND", "bool", false},
-		"Parking Brake":    {"BRAKE PARKING INDICATOR", "bool", false},
-		
+		"On Ground":     {"SIM ON GROUND", "bool", false},
+		"Parking Brake": {"BRAKE PARKING INDICATOR", "bool", false},
+
 		// Camera/View (writable for testing)
-		"Camera State":     {"CAMERA STATE", "number", true},
+		"Camera State": {"CAMERA STATE", "number", true},
 	}
 
 	for name, config := range variables {
@@ -166,25 +166,25 @@ func (fm *FlightMonitor) setupManagers() error {
 	// Subscribe to comprehensive system events
 	eventSubscriptions := map[string]string{
 		// Timer events for regular monitoring
-		"Timer1Sec":     client.SystemEvent1Sec,
-		"Timer4Sec":     client.SystemEvent4Sec,
-		"Timer6Hz":      client.SystemEvent6Hz,
-		"Frame":         client.SystemEventFrame,
+		"Timer1Sec": client.SystemEvent1Sec,
+		"Timer4Sec": client.SystemEvent4Sec,
+		"Timer6Hz":  client.SystemEvent6Hz,
+		"Frame":     client.SystemEventFrame,
 
 		// Simulation state events
-		"SimStart":      client.SystemEventSimStart,
-		"SimStop":       client.SystemEventSimStop,
-		"Sim":           client.SystemEventSim,
+		"SimStart": client.SystemEventSimStart,
+		"SimStop":  client.SystemEventSimStop,
+		"Sim":      client.SystemEventSim,
 
 		// Pause events (critical for validation)
-		"Pause":         client.SystemEventPause,
-		"Paused":        client.SystemEventPaused,
-		"Unpaused":      client.SystemEventUnpaused,
-		"PauseEx":       client.SystemEventPauseEx,
+		"Pause":    client.SystemEventPause,
+		"Paused":   client.SystemEventPaused,
+		"Unpaused": client.SystemEventUnpaused,
+		"PauseEx":  client.SystemEventPauseEx,
 
 		// Flight and aircraft events
-		"FlightLoaded":  client.SystemEventFlightLoaded,
-		"FlightSaved":   client.SystemEventFlightSaved,
+		"FlightLoaded":   client.SystemEventFlightLoaded,
+		"FlightSaved":    client.SystemEventFlightSaved,
 		"AircraftLoaded": client.SystemEventAircraftLoaded,
 
 		// Position and view events
@@ -192,9 +192,9 @@ func (fm *FlightMonitor) setupManagers() error {
 		"ViewChanged":     client.SystemEventView,
 
 		// System events
-		"Sound":         client.SystemEventSound,
-		"Crashed":       client.SystemEventCrashed,
-		"CrashReset":    client.SystemEventCrashReset,
+		"Sound":      client.SystemEventSound,
+		"Crashed":    client.SystemEventCrashed,
+		"CrashReset": client.SystemEventCrashReset,
 	}
 
 	for displayName, eventName := range eventSubscriptions {
@@ -212,16 +212,16 @@ func (fm *FlightMonitor) setupManagers() error {
 func (fm *FlightMonitor) createEventHandler(eventName string) client.SystemEventCallback {
 	var lastFrameDisplay time.Time
 	var lastTimer6HzDisplay time.Time
-	
+
 	return func(event client.SystemEventData) {
 		timestamp := time.Now().Format("15:04:05.000")
-		
+
 		// Update dashboard
 		fm.dashboard.recordEvent(eventName)
-		
+
 		// Update state tracker based on event
 		fm.stateTracker.processEvent(eventName, event)
-		
+
 		// Throttle high-frequency events to avoid console spam
 		if eventName == "Frame" {
 			// Only display Frame events every 2 seconds
@@ -236,12 +236,12 @@ func (fm *FlightMonitor) createEventHandler(eventName string) client.SystemEvent
 			}
 			lastTimer6HzDisplay = time.Now()
 		}
-		
+
 		// Display event with appropriate emoji and formatting
 		icon := fm.getEventIcon(eventName)
-		
+
 		fmt.Printf("[%s] %s %s", timestamp, icon, eventName)
-		
+
 		// Add relevant event data
 		switch eventName {
 		case "Pause", "Paused", "Unpaused":
@@ -250,7 +250,7 @@ func (fm *FlightMonitor) createEventHandler(eventName string) client.SystemEvent
 				state = "ON"
 			}
 			fmt.Printf(": %s (Data=%d)", state, event.Data)
-			
+
 		case "PauseEx":
 			// Decode pause flags
 			flags := event.Data
@@ -268,17 +268,17 @@ func (fm *FlightMonitor) createEventHandler(eventName string) client.SystemEvent
 				pauseTypes = append(pauseTypes, "NONE")
 			}
 			fmt.Printf(": [%s] (Flags=0x%X)", strings.Join(pauseTypes, ","), flags)
-			
+
 		case "Frame":
 			fmt.Printf(": FPS=%d", event.Data)
-			
+
 		case "FlightLoaded", "FlightSaved", "AircraftLoaded":
 			if event.Filename != "" {
 				fmt.Printf(": %s", event.Filename)
 			} else {
 				fmt.Printf(": Data=%d", event.Data)
 			}
-			
+
 		case "ViewChanged":
 			viewType := "Unknown"
 			switch event.Data {
@@ -290,47 +290,47 @@ func (fm *FlightMonitor) createEventHandler(eventName string) client.SystemEvent
 				viewType = "Map View"
 			}
 			fmt.Printf(": %s (Data=0x%X)", viewType, event.Data)
-			
+
 		case "Sound":
 			soundState := "OFF"
 			if event.Data&uint32(client.SIMCONNECT_SOUND_SYSTEM_EVENT_DATA_MASTER) != 0 {
 				soundState = "ON"
 			}
 			fmt.Printf(": %s (Data=0x%X)", soundState, event.Data)
-			
+
 		default:
 			if event.Data != 0 {
 				fmt.Printf(": Data=%d", event.Data)
 			}
 		}
-		
+
 		fmt.Println()
 	}
 }
 
 func (fm *FlightMonitor) getEventIcon(eventName string) string {
 	icons := map[string]string{
-		"Timer1Sec": "⏱️",
-		"Timer4Sec": "⏰",
-		"Timer6Hz":  "⚡",
-		"Frame":     "🎬",
-		"SimStart":  "▶️",
-		"SimStop":   "⏹️",
-		"Sim":       "🎮",
-		"Pause":     "⏸️",
-		"Paused":    "🔸",
-		"Unpaused":  "▶️",
-		"PauseEx":   "⏸️",
-		"FlightLoaded": "✈️",
-		"FlightSaved":  "💾",
-		"AircraftLoaded": "🛩️",
+		"Timer1Sec":       "⏱️",
+		"Timer4Sec":       "⏰",
+		"Timer6Hz":        "⚡",
+		"Frame":           "🎬",
+		"SimStart":        "▶️",
+		"SimStop":         "⏹️",
+		"Sim":             "🎮",
+		"Pause":           "⏸️",
+		"Paused":          "🔸",
+		"Unpaused":        "▶️",
+		"PauseEx":         "⏸️",
+		"FlightLoaded":    "✈️",
+		"FlightSaved":     "💾",
+		"AircraftLoaded":  "🛩️",
 		"PositionChanged": "📍",
-		"ViewChanged": "👁️",
-		"Sound":      "🔊",
-		"Crashed":    "💥",
-		"CrashReset": "🔄",
+		"ViewChanged":     "👁️",
+		"Sound":           "🔊",
+		"Crashed":         "💥",
+		"CrashReset":      "🔄",
 	}
-	
+
 	if icon, exists := icons[eventName]; exists {
 		return icon
 	}
@@ -509,10 +509,10 @@ func (fm *FlightMonitor) displayPeriodicStatus() {
 
 func (fm *FlightMonitor) displayDetailedStatus() {
 	fmt.Println("\n=== DETAILED FLIGHT MONITOR STATUS ===")
-	
+
 	duration := time.Since(fm.startTime)
 	fmt.Printf("⏱️  Monitoring Duration: %.1f seconds\n", duration.Seconds())
-	
+
 	// Dashboard statistics
 	fm.dashboard.mu.RLock()
 	totalEvents := fm.dashboard.totalEvents
@@ -521,19 +521,19 @@ func (fm *FlightMonitor) displayDetailedStatus() {
 		eventCounts[k] = v
 	}
 	fm.dashboard.mu.RUnlock()
-	
+
 	fmt.Printf("📡 Total Events Received: %d\n", totalEvents)
-	
+
 	if totalEvents > 0 {
 		fmt.Printf("📊 Events Per Second: %.2f\n", float64(totalEvents)/duration.Seconds())
-		
+
 		fmt.Println("\n📈 Event Breakdown:")
 		for eventName, count := range eventCounts {
 			percentage := float64(count) / float64(totalEvents) * 100
 			fmt.Printf("   %-20s: %4d (%.1f%%)\n", eventName, count, percentage)
 		}
 	}
-	
+
 	// State tracker information
 	fm.stateTracker.mu.RLock()
 	fmt.Printf("\n🎮 Simulation State:\n")
@@ -550,12 +550,12 @@ func (fm *FlightMonitor) displayDetailedStatus() {
 		fmt.Printf("   Flight: %s\n", fm.stateTracker.currentFlight)
 	}
 	fm.stateTracker.mu.RUnlock()
-	
+
 	// Manager status
 	fmt.Printf("\n🔧 Manager Status:\n")
 	fmt.Printf("   SystemEventManager: %t\n", fm.eventManager.IsRunning())
 	fmt.Printf("   FlightDataManager: %t\n", fm.flightData.IsRunning())
-	
+
 	if fm.flightData.IsRunning() {
 		dataCount, errorCount, lastUpdate := fm.flightData.GetStats()
 		fmt.Printf("   Flight Data Points: %d (errors: %d)\n", dataCount, errorCount)
@@ -563,55 +563,55 @@ func (fm *FlightMonitor) displayDetailedStatus() {
 			fmt.Printf("   Last Data Update: %v ago\n", time.Since(lastUpdate).Truncate(time.Millisecond))
 		}
 	}
-	
+
 	subscribedEvents := fm.eventManager.GetSubscribedEvents()
 	fmt.Printf("   Event Subscriptions: %d active\n", len(subscribedEvents))
-	
+
 	fmt.Println("=== END DETAILED STATUS ===")
 }
 
 func (fm *FlightMonitor) displayQuickStatus() {
 	duration := time.Since(fm.startTime)
-	
+
 	fm.dashboard.mu.RLock()
 	totalEvents := fm.dashboard.totalEvents
 	fm.dashboard.mu.RUnlock()
-	
+
 	fm.stateTracker.mu.RLock()
 	isPaused := fm.stateTracker.isPaused
 	isRunning := fm.stateTracker.isSimRunning
 	frameRate := fm.stateTracker.frameRate
 	fm.stateTracker.mu.RUnlock()
-	
-	fmt.Printf("⏱️ %.1fs | 📡 %d events | 🎮 Sim:%t Pause:%t", 
+
+	fmt.Printf("⏱️ %.1fs | 📡 %d events | 🎮 Sim:%t Pause:%t",
 		duration.Seconds(), totalEvents, isRunning, isPaused)
-	
+
 	if frameRate > 0 {
 		fmt.Printf(" | 🎬 %dFPS", frameRate)
 	}
-	
+
 	if fm.flightData.IsRunning() {
 		dataCount, _, _ := fm.flightData.GetStats()
 		fmt.Printf(" | 📊 %d data", dataCount)
 	}
-	
+
 	fmt.Println()
 }
 
 func (fm *FlightMonitor) displayFlightData() {
 	fmt.Println("\n=== CURRENT FLIGHT DATA ===")
-	
+
 	if !fm.flightData.IsRunning() {
 		fmt.Println("❌ FlightDataManager is not running")
 		return
 	}
-	
+
 	variables := fm.flightData.GetAllVariables()
 	if len(variables) == 0 {
 		fmt.Println("📭 No flight data available")
 		return
 	}
-	
+
 	// Group variables by category
 	categories := map[string][]string{
 		"🛩️  Aircraft": {"Altitude", "Airspeed", "Heading", "Vertical Speed"},
@@ -619,10 +619,10 @@ func (fm *FlightMonitor) displayFlightData() {
 		"🎮 Simulation": {"Sim Paused", "Sim Running", "On Ground", "Camera State"},
 		"📍 Navigation": {"Ground Speed"},
 	}
-		for category, varNames := range categories {
+	for category, varNames := range categories {
 		fmt.Printf("\n%s:\n", category)
 		hasData := false
-		
+
 		for _, name := range varNames {
 			// Find variable by name in the slice
 			var variable *client.FlightVariable
@@ -632,11 +632,11 @@ func (fm *FlightMonitor) displayFlightData() {
 					break
 				}
 			}
-			
+
 			if variable != nil {
 				hasData = true
 				fmt.Printf("   %-15s: ", name)
-				
+
 				// Format value based on type
 				if variable.Units == "bool" {
 					if variable.Value > 0.5 {
@@ -647,26 +647,26 @@ func (fm *FlightMonitor) displayFlightData() {
 				} else {
 					fmt.Printf("%.2f %s", variable.Value, variable.Units)
 				}
-				
+
 				if variable.Writable {
 					fmt.Printf(" (writable)")
 				}
-				
+
 				fmt.Printf("\n")
 			}
 		}
-		
+
 		if !hasData {
 			fmt.Printf("   📭 No data available\n")
 		}
 	}
-	
+
 	dataCount, errorCount, lastUpdate := fm.flightData.GetStats()
 	fmt.Printf("\n📊 Statistics: %d updates, %d errors\n", dataCount, errorCount)
 	if !lastUpdate.IsZero() {
 		fmt.Printf("🕐 Last update: %v ago\n", time.Since(lastUpdate).Truncate(time.Millisecond))
 	}
-	
+
 	fmt.Println("=== END FLIGHT DATA ===")
 }
 
@@ -682,22 +682,22 @@ func (fm *FlightMonitor) setCameraState(state int) {
 		fmt.Printf("❌ Invalid camera state %d. Valid range: 2-6\n", state)
 		return
 	}
-	
+
 	fmt.Printf("📷 Setting camera state to %d", state)
-	
+
 	stateNames := map[int]string{
 		2: "Wing View",
-		3: "Cockpit View", 
+		3: "Cockpit View",
 		4: "External View",
 		5: "Tail View",
 		6: "Tower View",
 	}
-	
+
 	if name, exists := stateNames[state]; exists {
 		fmt.Printf(" (%s)", name)
 	}
 	fmt.Println("...")
-	
+
 	if err := fm.flightData.SetVariable("Camera State", float64(state)); err != nil {
 		fmt.Printf("❌ Failed to set camera state: %v\n", err)
 		fmt.Println("💡 Make sure aircraft is loaded and FlightDataManager is running")
@@ -712,9 +712,9 @@ func (fm *FlightMonitor) setThrottle(percent float64) {
 		fmt.Printf("❌ Invalid throttle percentage %.1f. Valid range: 0-100\n", percent)
 		return
 	}
-	
+
 	fmt.Printf("🎯 Setting throttle to %.1f%%...\n", percent)
-	
+
 	if err := fm.flightData.SetVariable("Throttle", percent); err != nil {
 		fmt.Printf("❌ Failed to set throttle: %v\n", err)
 		fmt.Println("💡 Make sure aircraft is loaded and engine is available")
@@ -727,7 +727,7 @@ func (fm *FlightMonitor) setThrottle(percent float64) {
 func (fm *FlightMonitor) runValidationTests() {
 	fmt.Println("\n=== AUTOMATED VALIDATION TESTS ===")
 	fmt.Println("🔧 Running bidirectional system events validation...")
-	
+
 	tests := []struct {
 		name string
 		test func() bool
@@ -738,10 +738,10 @@ func (fm *FlightMonitor) runValidationTests() {
 		{"Data Variable Access", fm.testDataVariables},
 		{"Writable Variables", fm.testWritableVariables},
 	}
-	
+
 	passed := 0
 	total := len(tests)
-	
+
 	for _, test := range tests {
 		fmt.Printf("🧪 Testing: %s... ", test.name)
 		if test.test() {
@@ -751,16 +751,16 @@ func (fm *FlightMonitor) runValidationTests() {
 			fmt.Println("❌ FAIL")
 		}
 	}
-	
-	fmt.Printf("\n📊 Test Results: %d/%d passed (%.1f%%)\n", 
+
+	fmt.Printf("\n📊 Test Results: %d/%d passed (%.1f%%)\n",
 		passed, total, float64(passed)/float64(total)*100)
-	
+
 	if passed == total {
 		fmt.Println("🎉 All validation tests passed! System events are working correctly.")
 	} else {
 		fmt.Println("⚠️  Some tests failed. Check MSFS connection and aircraft state.")
 	}
-	
+
 	fmt.Println("=== END VALIDATION TESTS ===")
 }
 
@@ -778,7 +778,7 @@ func (fm *FlightMonitor) testStateConsistency() bool {
 	fm.dashboard.mu.RLock()
 	totalEvents := fm.dashboard.totalEvents
 	fm.dashboard.mu.RUnlock()
-	
+
 	return totalEvents > 0 // Should have received some events
 }
 
@@ -790,47 +790,47 @@ func (fm *FlightMonitor) testDataVariables() bool {
 func (fm *FlightMonitor) testWritableVariables() bool {
 	variables := fm.flightData.GetAllVariables()
 	writableCount := 0
-	
+
 	for _, variable := range variables {
 		if variable.Writable {
 			writableCount++
 		}
 	}
-	
+
 	return writableCount > 0 // Should have at least some writable variables
 }
 
 func (fm *FlightMonitor) cleanup() {
 	fmt.Println("\n🧹 Cleaning up...")
-	
+
 	if fm.eventManager != nil {
 		fm.eventManager.Stop()
 		fmt.Println("✅ SystemEventManager stopped")
 	}
-	
+
 	if fm.flightData != nil {
 		fm.flightData.Stop()
 		fmt.Println("✅ FlightDataManager stopped")
 	}
-	
+
 	if fm.client != nil {
 		fm.client.Close()
 		fmt.Println("✅ SimConnect connection closed")
 	}
-	
+
 	// Final statistics
 	duration := time.Since(fm.startTime)
 	fm.dashboard.mu.RLock()
 	totalEvents := fm.dashboard.totalEvents
 	fm.dashboard.mu.RUnlock()
-	
+
 	fmt.Printf("\n📊 FINAL SESSION STATISTICS:\n")
 	fmt.Printf("   Duration: %.1f seconds\n", duration.Seconds())
 	fmt.Printf("   Total Events: %d\n", totalEvents)
 	if duration.Seconds() > 0 {
 		fmt.Printf("   Avg Events/sec: %.2f\n", float64(totalEvents)/duration.Seconds())
 	}
-	
+
 	fmt.Println("\n🎉 Flight Monitor Demo completed successfully!")
 	fmt.Println("✅ System events implementation validated with live simulator")
 }
@@ -839,7 +839,7 @@ func (fm *FlightMonitor) cleanup() {
 func (d *Dashboard) recordEvent(eventName string) {
 	d.mu.Lock()
 	defer d.mu.Unlock()
-	
+
 	d.eventCounts[eventName]++
 	d.lastEvents[eventName] = time.Now()
 	d.totalEvents++
@@ -850,7 +850,7 @@ func (d *Dashboard) recordEvent(eventName string) {
 func (st *StateTracker) processEvent(eventName string, event client.SystemEventData) {
 	st.mu.Lock()
 	defer st.mu.Unlock()
-	
+
 	switch eventName {
 	case "Pause", "Paused":
 		st.isPaused = (event.Data == uint32(client.SIMCONNECT_STATE_ON))
