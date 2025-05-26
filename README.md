@@ -142,6 +142,4 @@ Contributions welcome! See our [Contributing Guidelines](CONTRIBUTING.md).
 Licensed under the MIT License. See [LICENSE](LICENSE) file for details.
 
 ---
-
-**go-simconnect** - Production-ready SimConnect integration for Go developers  
-© 2024 Martin Hrášek & WANTED.solutions s.r.o.
+2024 © All rights reserved - Martin Hrášek <@marley-ma> and WANTED.solutions s.r.o. <@wanted-solutions>
