@@ -32,10 +32,12 @@ This package enables Go applications to connect to Microsoft Flight Simulator 20
 - ✅ **Connection Management** - Reliable connection handling with auto-reconnect support
 - ✅ **Data Definitions** - Flexible variable definition system
 - ✅ **Real-time Data Streaming** - High-frequency data collection (~20Hz)
+- ✅ **Data Writing (SetData)** - **NEW!** Set simulation variables (camera, lights, controls, etc.)
 - ✅ **System State Monitoring** - Access to MSFS system information
 
 #### Flight Data Management
 - ✅ **15 Standard Variables** - Complete aircraft telemetry (position, speed, attitude, engine, controls)
+- ✅ **Writable Variables** - **NEW!** Control aircraft systems and simulator state
 - ✅ **Thread-safe Operations** - Concurrent access with proper synchronization
 - ✅ **Error Handling & Recovery** - Comprehensive error tracking and statistics
 - ✅ **Custom Variables** - Add any SimConnect variable with proper units
@@ -144,6 +146,77 @@ func main() {
         fmt.Printf("Data: %d, Errors: %d, Last: %v ago\n",
             dataCount, errorCount, time.Since(lastUpdate))
         
+        time.Sleep(1 * time.Second)
+    }
+}
+```
+
+### Setting Simulation Variables (NEW!)
+
+The package now supports **writing simulation variables** to control aircraft systems and simulator state. Here's a camera control example that provides immediate visual feedback:
+
+```go
+package main
+
+import (
+    "fmt"
+    "log"
+    "time"
+    "github.com/mrlm-net/go-simconnect/pkg/client"
+)
+
+func main() {
+    // Create client with MSFS 2024 SDK path
+    dllPath := `C:\MSFS 2024 SDK\SimConnect SDK\lib\SimConnect.dll`
+    simClient := client.NewClientWithDLLPath("CameraTest", dllPath)
+    
+    // Connect to SimConnect
+    if err := simClient.Open(); err != nil {
+        log.Fatal("Failed to connect:", err)
+    }
+    defer simClient.Close()
+    
+    // Create flight data manager
+    fdm := client.NewFlightDataManager(simClient)
+    
+    // Add camera state variable (writable)
+    fdm.AddVariableWithWritable("Camera State", "Camera State", "number", true)
+    
+    // Start data collection
+    if err := fdm.Start(); err != nil {
+        log.Fatal("Failed to start:", err)
+    }
+    defer fdm.Stop()
+    
+    // Wait for initial data
+    time.Sleep(3 * time.Second)
+    
+    // Control camera views - immediate visual feedback!
+    fmt.Println("Switching to cockpit view...")
+    fdm.SetVariable("Camera State", 2.0)  // Cockpit
+    time.Sleep(3 * time.Second)
+    
+    fmt.Println("Switching to external view...")
+    fdm.SetVariable("Camera State", 3.0)  // External
+    time.Sleep(3 * time.Second)
+    
+    fmt.Println("Switching to wing view...")
+    fdm.SetVariable("Camera State", 4.0)  // Wing
+    
+    fmt.Println("Lowering landing gear...")
+    fdm.SetVariable("Gear Position", 1.0)  // 1.0 = gear down
+    
+    // Monitor the changes
+    for i := 0; i < 10; i++ {
+        variables := fdm.GetAllVariables()
+        for _, v := range variables {
+            status := "READ-ONLY"
+            if v.Writable {
+                status = "WRITABLE"
+            }
+            fmt.Printf("%s: %.1f %s [%s]\n", v.Name, v.Value, v.Units, status)
+        }
+        fmt.Println("---")
         time.Sleep(1 * time.Second)
     }
 }
@@ -507,6 +580,21 @@ go func() {
 - **0xC000013C (STATUS_REMOTE_DISCONNECT)**: MSFS was closed or connection lost
 
 ## Demo Applications
+
+### Camera Control Test (`cmd/camera_test/`)
+**SetData validation example** - Demonstrates writing simulation variables with immediate visual feedback:
+- Real-time camera control through SetData commands
+- Cycles through cockpit, external, wing, tail, and tower views
+- Provides definitive proof that SetData commands reach the simulator
+- Perfect for validating SimConnect write functionality
+
+```bash
+# Build and run
+go build -o camera_test.exe ./cmd/camera_test
+./camera_test.exe
+```
+
+**Note**: This test provides immediate visual confirmation that SetData is working - you'll see the camera view change in MSFS 2024 every few seconds during the test sequence.
 
 ### Complete Flight Monitor (`cmd/final_complete_demo_fixed/`)
 A comprehensive demonstration showing all package features:

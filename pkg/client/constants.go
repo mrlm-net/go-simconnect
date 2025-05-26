@@ -67,3 +67,11 @@ const (
 // Data definition and request ID types
 type DataDefinitionID uint32
 type SimObjectDataRequestID uint32
+
+// SimConnect data set flags for SetDataOnSimObject
+type SIMCONNECT_DATA_SET_FLAG uint32
+
+const (
+	SIMCONNECT_DATA_SET_FLAG_DEFAULT SIMCONNECT_DATA_SET_FLAG = 0
+	SIMCONNECT_DATA_SET_FLAG_TAGGED  SIMCONNECT_DATA_SET_FLAG = 1
+)

@@ -300,3 +300,68 @@ func (c *Client) GetRawDispatch() ([]byte, error) {
 
 	return buffer, nil
 }
+
+// SetDataOnSimObject sets data on a simulation object
+// Implements SimConnect_SetDataOnSimObject function
+func (c *Client) SetDataOnSimObject(defineID DataDefinitionID, objectID SIMCONNECT_OBJECT_ID, flags SIMCONNECT_DATA_SET_FLAG, data []byte) error {
+	if !c.isOpen {
+		return fmt.Errorf("client is not open")
+	}
+
+	// Get the SimConnect_SetDataOnSimObject function from DLL
+	proc := c.dll.NewProc("SimConnect_SetDataOnSimObject")
+
+	// Calculate parameters
+	arrayCount := uint32(1)       // We're setting one data element
+	unitSize := uint32(len(data)) // Size of our data in bytes
+
+	// Call SimConnect_SetDataOnSimObject
+	// HRESULT SimConnect_SetDataOnSimObject(HANDLE hSimConnect, SIMCONNECT_DATA_DEFINITION_ID DefineID,
+	//                                       SIMCONNECT_OBJECT_ID ObjectID, SIMCONNECT_DATA_SET_FLAG Flags,
+	//                                       DWORD ArrayCount, DWORD cbUnitSize, void* pDataSet)
+	r1, _, _ := proc.Call(
+		c.handle,                          // hSimConnect
+		uintptr(defineID),                 // DefineID
+		uintptr(objectID),                 // ObjectID
+		uintptr(flags),                    // Flags
+		uintptr(arrayCount),               // ArrayCount
+		uintptr(unitSize),                 // cbUnitSize
+		uintptr(unsafe.Pointer(&data[0])), // pDataSet
+	)
+
+	hresult := uint32(r1)
+	if !IsHRESULTSuccess(hresult) {
+		return NewSimConnectError("SimConnect_SetDataOnSimObject", hresult, GetHRESULTMessage(hresult))
+	}
+
+	return nil
+}
+
+// SetFloat64OnSimObject sets a single float64 value on a simulation object
+// This is a convenience method for the most common use case in flight simulation
+func (c *Client) SetFloat64OnSimObject(defineID DataDefinitionID, objectID SIMCONNECT_OBJECT_ID, value float64) error {
+	// Convert float64 to byte array
+	data := make([]byte, 8)
+	*(*float64)(unsafe.Pointer(&data[0])) = value
+
+	// Use non-tagged mode since we're setting a single variable with its own data definition
+	return c.SetDataOnSimObject(defineID, objectID, SIMCONNECT_DATA_SET_FLAG_DEFAULT, data)
+}
+
+// SetFloat32OnSimObject sets a single float32 value on a simulation object
+func (c *Client) SetFloat32OnSimObject(defineID DataDefinitionID, objectID SIMCONNECT_OBJECT_ID, value float32) error {
+	// Convert float32 to byte array
+	data := make([]byte, 4)
+	*(*float32)(unsafe.Pointer(&data[0])) = value
+
+	return c.SetDataOnSimObject(defineID, objectID, SIMCONNECT_DATA_SET_FLAG_DEFAULT, data)
+}
+
+// SetInt32OnSimObject sets a single int32 value on a simulation object
+func (c *Client) SetInt32OnSimObject(defineID DataDefinitionID, objectID SIMCONNECT_OBJECT_ID, value int32) error {
+	// Convert int32 to byte array
+	data := make([]byte, 4)
+	*(*int32)(unsafe.Pointer(&data[0])) = value
+
+	return c.SetDataOnSimObject(defineID, objectID, SIMCONNECT_DATA_SET_FLAG_DEFAULT, data)
+}
