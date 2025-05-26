@@ -1,3 +1,8 @@
+---
+applyTo: '**'
+---
+Coding standards, domain knowledge, and preferences that AI should follow.
+
 # GitHub Copilot Instructions for go-simconnect
 
 ## Project Overview

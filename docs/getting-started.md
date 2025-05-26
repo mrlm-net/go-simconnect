@@ -169,9 +169,23 @@ go func() {
 
 ## Next Steps
 
-- **Examples**: Explore the `examples/` directory for complete applications
-- **API Reference**: See detailed API documentation in `docs/api/`
-- **Advanced Usage**: Learn about performance optimization and advanced features
+Now that you have the basics working, explore these features:
+
+### Examples
+- **[Web Dashboard](examples/web-dashboard.md)** - Browser-based flight data display
+- **[Camera Control](examples/camera-test.md)** - Real-time camera switching
+- **[System Events](examples/system-events.md)** - Event-driven notifications
+- **[Complete Demo](examples/complete-demo.md)** - Advanced patterns and best practices
+
+### Core Features
+- **[FlightDataManager](api/flight-data-manager.md)** - High-level data management
+- **[SystemEventManager](api/system-events.md)** - Event-driven programming
+- **[Client API](api/client.md)** - Low-level SimConnect access
+
+### Advanced Topics
+- **[Performance Optimization](advanced/performance.md)** - Scaling and efficiency
+- **[Architecture Patterns](advanced/architecture.md)** - Production-ready designs
+- **[Troubleshooting](advanced/troubleshooting.md)** - Common issues and solutions
 
 ## Troubleshooting
 

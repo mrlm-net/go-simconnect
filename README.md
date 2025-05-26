@@ -65,10 +65,11 @@ func main() {
 
 - ✅ **Real-time Flight Data** - Position, speed, attitude, engine parameters
 - ✅ **Aircraft Control** - Set variables, control systems, change camera views
+- ✅ **System Events** - Event-driven notifications for sim state changes (pause, flight loaded, crashes, etc.)
 - ✅ **Thread-safe Operations** - Concurrent access with proper synchronization
 - ✅ **Comprehensive API** - Full SimConnect variable access with 200+ documented variables
 - ✅ **Production Ready** - Error handling, statistics, and performance optimization
-- ✅ **Rich Examples** - Web dashboard, camera control, complete demos
+- ✅ **Rich Examples** - Web dashboard, camera control, system events monitoring, complete demos
 
 ## Documentation
 
@@ -78,11 +79,13 @@ Installation, setup, and your first SimConnect application.
 ### 📖 [API Reference](docs/api/)
 - [Client API](docs/api/client.md) - Core SimConnect client functionality
 - [FlightDataManager](docs/api/flight-data-manager.md) - High-level data management
+- [SystemEventManager](docs/api/system-events.md) - Event-driven notifications and monitoring
 - [Variables Reference](docs/api/variables.md) - 200+ available SimConnect variables
 
 ### 💡 [Examples](docs/examples/)
 - [Camera Control](examples/camera_test/) - Real-time camera view switching
 - [Web Dashboard](examples/web_dashboard/) - Browser-based flight data display
+- [System Events](examples/system_events_comprehensive/) - Event-driven monitoring and notifications
 - [Complete Demo](examples/final_complete_demo_fixed/) - Comprehensive feature showcase
 
 ### 🔧 [Advanced Topics](docs/advanced/)
@@ -119,6 +122,13 @@ go run main.go
 Comprehensive feature showcase:
 ```bash
 cd examples/final_complete_demo_fixed
+go run main.go
+```
+
+### 📡 System Events
+Real-time event monitoring and notifications:
+```bash
+cd examples/system_events_comprehensive
 go run main.go
 ```
 ## Support

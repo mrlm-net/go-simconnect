@@ -63,6 +63,40 @@ type SIMCONNECT_RECV_SIMOBJECT_DATA struct {
 	// Data follows this structure - must be cast to appropriate type
 }
 
+// SIMCONNECT_RECV_EVENT structure for system event notifications
+type SIMCONNECT_RECV_EVENT struct {
+	SIMCONNECT_RECV        // Inherited base structure
+	GroupID         uint32 // Group ID (reserved for system events)
+	EventID         uint32 // Event ID specified when subscribing
+	Data            uint32 // Event-specific data
+}
+
+// SIMCONNECT_RECV_EVENT_FILENAME structure for events that include filenames
+type SIMCONNECT_RECV_EVENT_FILENAME struct {
+	SIMCONNECT_RECV                // Inherited base structure
+	GroupID         uint32         // Group ID (reserved for system events)
+	EventID         uint32         // Event ID specified when subscribing
+	Data            uint32         // Event-specific data
+	SzFileName      [MAX_PATH]byte // Null-terminated filename string
+}
+
+// SIMCONNECT_RECV_EVENT_OBJECT_ADDREMOVE structure for object add/remove events
+type SIMCONNECT_RECV_EVENT_OBJECT_ADDREMOVE struct {
+	SIMCONNECT_RECV        // Inherited base structure
+	GroupID         uint32 // Group ID (reserved for system events)
+	EventID         uint32 // Event ID specified when subscribing
+	Data            uint32 // Event-specific data
+	ObjectID        uint32 // Object ID that was added or removed
+}
+
+// SIMCONNECT_RECV_EVENT_FRAME structure for frame events (same as basic event but semantically different)
+type SIMCONNECT_RECV_EVENT_FRAME struct {
+	SIMCONNECT_RECV        // Inherited base structure
+	GroupID         uint32 // Group ID (reserved for system events)
+	EventID         uint32 // Event ID specified when subscribing
+	Data            uint32 // Frame number or timing data
+}
+
 // ParseSimObjectData parses a SIMCONNECT_RECV_SIMOBJECT_DATA message from raw bytes
 func ParseSimObjectData(data []byte) (*SIMCONNECT_RECV_SIMOBJECT_DATA, []byte, error) {
 	if len(data) < int(unsafe.Sizeof(SIMCONNECT_RECV_SIMOBJECT_DATA{})) {
@@ -93,6 +127,46 @@ func ParseMessageType(data []byte) (uint32, error) {
 	return recv.DwID, nil
 }
 
+// ParseEvent parses a SIMCONNECT_RECV_EVENT message from raw bytes
+func ParseEvent(data []byte) (*SIMCONNECT_RECV_EVENT, error) {
+	if len(data) < int(unsafe.Sizeof(SIMCONNECT_RECV_EVENT{})) {
+		return nil, fmt.Errorf("data too short for SIMCONNECT_RECV_EVENT")
+	}
+
+	recv := (*SIMCONNECT_RECV_EVENT)(unsafe.Pointer(&data[0]))
+	return recv, nil
+}
+
+// ParseEventFilename parses a SIMCONNECT_RECV_EVENT_FILENAME message from raw bytes
+func ParseEventFilename(data []byte) (*SIMCONNECT_RECV_EVENT_FILENAME, error) {
+	if len(data) < int(unsafe.Sizeof(SIMCONNECT_RECV_EVENT_FILENAME{})) {
+		return nil, fmt.Errorf("data too short for SIMCONNECT_RECV_EVENT_FILENAME")
+	}
+
+	recv := (*SIMCONNECT_RECV_EVENT_FILENAME)(unsafe.Pointer(&data[0]))
+	return recv, nil
+}
+
+// ParseEventObjectAddRemove parses a SIMCONNECT_RECV_EVENT_OBJECT_ADDREMOVE message from raw bytes
+func ParseEventObjectAddRemove(data []byte) (*SIMCONNECT_RECV_EVENT_OBJECT_ADDREMOVE, error) {
+	if len(data) < int(unsafe.Sizeof(SIMCONNECT_RECV_EVENT_OBJECT_ADDREMOVE{})) {
+		return nil, fmt.Errorf("data too short for SIMCONNECT_RECV_EVENT_OBJECT_ADDREMOVE")
+	}
+
+	recv := (*SIMCONNECT_RECV_EVENT_OBJECT_ADDREMOVE)(unsafe.Pointer(&data[0]))
+	return recv, nil
+}
+
+// ParseEventFrame parses a SIMCONNECT_RECV_EVENT_FRAME message from raw bytes
+func ParseEventFrame(data []byte) (*SIMCONNECT_RECV_EVENT_FRAME, error) {
+	if len(data) < int(unsafe.Sizeof(SIMCONNECT_RECV_EVENT_FRAME{})) {
+		return nil, fmt.Errorf("data too short for SIMCONNECT_RECV_EVENT_FRAME")
+	}
+
+	recv := (*SIMCONNECT_RECV_EVENT_FRAME)(unsafe.Pointer(&data[0]))
+	return recv, nil
+}
+
 // SystemStateResponse represents a processed system state response
 type SystemStateResponse struct {
 	RequestID    DataRequestID
@@ -101,6 +175,19 @@ type SystemStateResponse struct {
 	FloatValue   float32
 	DataType     string // "string", "integer", "float"
 }
+
+// SystemEventData represents a processed system event notification
+type SystemEventData struct {
+	EventID   SIMCONNECT_CLIENT_EVENT_ID // Event ID that was subscribed to
+	EventName string                     // Human-readable event name
+	Data      uint32                     // Event-specific data
+	Filename  string                     // Filename (for filename events, empty otherwise)
+	ObjectID  uint32                     // Object ID (for object events, 0 otherwise)
+	EventType string                     // Type: "basic", "filename", "object", "frame"
+}
+
+// SystemEventCallback is a function type for event callbacks
+type SystemEventCallback func(eventData SystemEventData)
 
 // GetNextDispatch retrieves the next SimConnect message
 func (c *Client) GetNextDispatch() (*SystemStateResponse, error) {
