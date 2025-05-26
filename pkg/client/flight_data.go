@@ -9,11 +9,12 @@ import (
 
 // FlightVariable represents a simulation variable definition
 type FlightVariable struct {
-	Name    string    // Human-readable name
-	SimVar  string    // SimConnect variable name
-	Units   string    // Units of measurement
-	Value   float64   // Current value
-	Updated time.Time // Last update time
+	Name     string    // Human-readable name
+	SimVar   string    // SimConnect variable name
+	Units    string    // Units of measurement
+	Value    float64   // Current value
+	Updated  time.Time // Last update time
+	Writable bool      // Whether this variable can be written to (added for SetData support)
 }
 
 // FlightDataManager manages real-time flight simulation data using separate data definitions
@@ -42,6 +43,11 @@ func NewFlightDataManager(client *Client) *FlightDataManager {
 
 // AddVariable adds a simulation variable to be tracked
 func (fdm *FlightDataManager) AddVariable(name, simVar, units string) error {
+	return fdm.AddVariableWithWritable(name, simVar, units, false) // Default to read-only
+}
+
+// AddVariableWithWritable adds a simulation variable with write capability specification
+func (fdm *FlightDataManager) AddVariableWithWritable(name, simVar, units string, writable bool) error {
 	fdm.mutex.Lock()
 	defer fdm.mutex.Unlock()
 
@@ -63,10 +69,11 @@ func (fdm *FlightDataManager) AddVariable(name, simVar, units string) error {
 
 	// Create variable record
 	variable := FlightVariable{
-		Name:   name,
-		SimVar: simVar,
-		Units:  units,
-		Value:  0.0,
+		Name:     name,
+		SimVar:   simVar,
+		Units:    units,
+		Value:    0.0,
+		Writable: writable,
 	} // Store in our collections
 	fdm.variables = append(fdm.variables, variable)
 	fdm.definitions = append(fdm.definitions, defineID)
@@ -78,29 +85,60 @@ func (fdm *FlightDataManager) AddVariable(name, simVar, units string) error {
 // AddStandardVariables adds a set of commonly used flight simulation variables
 func (fdm *FlightDataManager) AddStandardVariables() error {
 	standardVars := []struct {
+		name     string
+		simVar   string
+		units    string
+		writable bool
+	}{
+		{"Altitude", "Plane Altitude", "feet", false},                                   // Read-only
+		{"Indicated Airspeed", "Airspeed Indicated", "knots", false},                    // Read-only
+		{"True Airspeed", "Airspeed True", "knots", false},                              // Read-only
+		{"Ground Speed", "Ground Velocity", "knots", false},                             // Read-only
+		{"Latitude", "Plane Latitude", "degrees", false},                                // Read-only
+		{"Longitude", "Plane Longitude", "degrees", false},                              // Read-only
+		{"Heading Magnetic", "Plane Heading Degrees Magnetic", "degrees", false},        // Read-only
+		{"Heading True", "Plane Heading Degrees True", "degrees", false},                // Read-only
+		{"Bank Angle", "Plane Bank Degrees", "degrees", false},                          // Read-only
+		{"Pitch Angle", "Plane Pitch Degrees", "degrees", false},                        // Read-only
+		{"Vertical Speed", "Vertical Speed", "feet per minute", false},                  // Read-only
+		{"Engine RPM", "General Eng RPM:1", "rpm", false},                               // Read-only
+		{"Throttle Position", "General Eng Throttle Lever Position:1", "percent", true}, // Writable
+		{"Gear Position", "Gear Handle Position", "bool", true},                         // Writable
+		{"Flaps Position", "Flaps Handle Percent", "percent", true},                     // Writable
+	}
+
+	for _, variable := range standardVars {
+		if err := fdm.AddVariableWithWritable(variable.name, variable.simVar, variable.units, variable.writable); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// AddWritableStandardVariables adds commonly writable flight simulation variables
+func (fdm *FlightDataManager) AddWritableStandardVariables() error {
+	writableVars := []struct {
 		name   string
 		simVar string
 		units  string
 	}{
-		{"Altitude", "Plane Altitude", "feet"},
-		{"Indicated Airspeed", "Airspeed Indicated", "knots"},
-		{"True Airspeed", "Airspeed True", "knots"},
-		{"Ground Speed", "Ground Velocity", "knots"},
-		{"Latitude", "Plane Latitude", "degrees"},
-		{"Longitude", "Plane Longitude", "degrees"},
-		{"Heading Magnetic", "Plane Heading Degrees Magnetic", "degrees"},
-		{"Heading True", "Plane Heading Degrees True", "degrees"},
-		{"Bank Angle", "Plane Bank Degrees", "degrees"},
-		{"Pitch Angle", "Plane Pitch Degrees", "degrees"},
-		{"Vertical Speed", "Vertical Speed", "feet per minute"},
-		{"Engine RPM", "General Eng RPM:1", "rpm"},
 		{"Throttle Position", "General Eng Throttle Lever Position:1", "percent"},
-		{"Gear Position", "Gear Handle Position", "bool"},
 		{"Flaps Position", "Flaps Handle Percent", "percent"},
+		{"Gear Position", "Gear Handle Position", "bool"},
+		{"Autopilot Master", "Autopilot Master", "bool"},
+		{"Autopilot Altitude Lock", "Autopilot Altitude Lock", "bool"},
+		{"Autopilot Heading Lock", "Autopilot Heading Lock", "bool"},
+		{"Autopilot Airspeed Hold", "Autopilot Airspeed Hold", "bool"},
+		{"Autopilot Altitude Hold Value", "Autopilot Altitude Hold Var", "feet"},
+		{"Autopilot Heading Hold Value", "Autopilot Heading Lock Dir", "degrees"},
+		{"Autopilot Airspeed Hold Value", "Autopilot Airspeed Hold Var", "knots"},
+		{"Mixture Position", "General Eng Mixture Lever Position:1", "percent"},
+		{"Propeller Position", "General Eng Prop Lever Position:1", "percent"},
 	}
 
-	for _, variable := range standardVars {
-		if err := fdm.AddVariable(variable.name, variable.simVar, variable.units); err != nil {
+	for _, variable := range writableVars {
+		if err := fdm.AddVariableWithWritable(variable.name, variable.simVar, variable.units, true); err != nil {
 			return err
 		}
 	}
@@ -285,4 +323,57 @@ func (fdm *FlightDataManager) collectData() {
 		}
 		fdm.mutex.Unlock()
 	}
+}
+
+// SetVariable sets the value of a simulation variable by name
+func (fdm *FlightDataManager) SetVariable(name string, value float64) error {
+	fdm.mutex.RLock()
+	defer fdm.mutex.RUnlock()
+
+	// Find the variable
+	variableIndex := -1
+	for i, variable := range fdm.variables {
+		if variable.Name == name {
+			variableIndex = i
+			break
+		}
+	}
+
+	if variableIndex == -1 {
+		return fmt.Errorf("variable '%s' not found", name)
+	}
+
+	// Check if variable is writable
+	if !fdm.variables[variableIndex].Writable {
+		return fmt.Errorf("variable '%s' is not writable", name)
+	}
+
+	// Use the SetFloat64OnSimObject method with the variable's data definition
+	return fdm.client.SetFloat64OnSimObject(
+		fdm.definitions[variableIndex],
+		SIMCONNECT_OBJECT_ID_USER,
+		value,
+	)
+}
+
+// SetVariableByIndex sets the value using the variable index (more efficient for repeated operations)
+func (fdm *FlightDataManager) SetVariableByIndex(index int, value float64) error {
+	fdm.mutex.RLock()
+	defer fdm.mutex.RUnlock()
+
+	if index < 0 || index >= len(fdm.variables) {
+		return fmt.Errorf("variable index %d out of range [0-%d]", index, len(fdm.variables)-1)
+	}
+
+	// Check if variable is writable
+	if !fdm.variables[index].Writable {
+		return fmt.Errorf("variable '%s' is not writable", fdm.variables[index].Name)
+	}
+
+	// Use the SetFloat64OnSimObject method with the variable's data definition
+	return fdm.client.SetFloat64OnSimObject(
+		fdm.definitions[index],
+		SIMCONNECT_OBJECT_ID_USER,
+		value,
+	)
 }
