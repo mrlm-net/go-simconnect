@@ -149,7 +149,7 @@ Contributions welcome! See our [Contributing Guidelines](https://github.com/mrlm
 
 ## License
 
-Licensed under the MIT License. See [LICENSE](LICENSE) file for details.
+See [LICENSE](LICENSE) file for details.
 
 ---
 2024 © All rights reserved - Martin Hrášek <@marley-ma> and WANTED.solutions s.r.o. <@wanted-solutions>
