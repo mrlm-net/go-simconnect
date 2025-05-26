@@ -129,7 +129,7 @@ go run main.go
 
 ## Contributing
 
-Contributions welcome! See our [Contributing Guidelines](CONTRIBUTING.md).
+Contributions welcome! See our [Contributing Guidelines](https://github.com/mrlm-net/cfg/blob/main/CONTRIBUTING.md).
 
 ### Development
 - Follow standard Go conventions
