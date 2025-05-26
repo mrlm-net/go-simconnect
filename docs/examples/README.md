@@ -38,6 +38,18 @@ A complete web-based flight data dashboard that displays real-time aircraft info
 - Multiple aircraft parameters
 - Responsive design
 
+### [System Events Monitoring](system-events.md)
+**Location:** `examples/system_events_comprehensive/`
+
+Comprehensive demonstration of event-driven notifications from Microsoft Flight Simulator. Shows how to monitor simulation state changes without polling.
+
+**Features:**
+- Event subscription and callbacks
+- Real-time event monitoring
+- Integration with FlightDataManager
+- Event statistics and performance tracking
+- Multiple event type handling
+
 ### [Complete Demo](complete-demo.md)
 **Location:** `examples/final_complete_demo_fixed/`
 

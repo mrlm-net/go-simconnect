@@ -365,3 +365,193 @@ func (c *Client) SetInt32OnSimObject(defineID DataDefinitionID, objectID SIMCONN
 
 	return c.SetDataOnSimObject(defineID, objectID, SIMCONNECT_DATA_SET_FLAG_DEFAULT, data)
 }
+
+// SubscribeToSystemEvent subscribes to a system event notification
+// Implements SimConnect_SubscribeToSystemEvent function
+func (c *Client) SubscribeToSystemEvent(eventID SIMCONNECT_CLIENT_EVENT_ID, systemEventName string) error {
+	if !c.isOpen {
+		return fmt.Errorf("client is not open")
+	}
+
+	// Get the SimConnect_SubscribeToSystemEvent function from DLL
+	proc := c.dll.NewProc("SimConnect_SubscribeToSystemEvent")
+
+	// Convert system event name to null-terminated byte array
+	eventNameBytes, err := syscall.BytePtrFromString(systemEventName)
+	if err != nil {
+		return fmt.Errorf("failed to convert system event name to bytes: %v", err)
+	}
+
+	// Call SimConnect_SubscribeToSystemEvent
+	// HRESULT SimConnect_SubscribeToSystemEvent(HANDLE hSimConnect, SIMCONNECT_CLIENT_EVENT_ID EventID, const char* SystemEventName)
+	r1, _, _ := proc.Call(
+		c.handle,                                // hSimConnect
+		uintptr(eventID),                        // EventID
+		uintptr(unsafe.Pointer(eventNameBytes)), // SystemEventName
+	)
+
+	hresult := uint32(r1)
+	if !IsHRESULTSuccess(hresult) {
+		return NewSimConnectError("SimConnect_SubscribeToSystemEvent", hresult, GetHRESULTMessage(hresult))
+	}
+
+	return nil
+}
+
+// UnsubscribeFromSystemEvent unsubscribes from a system event notification
+// Implements SimConnect_UnsubscribeFromSystemEvent function
+func (c *Client) UnsubscribeFromSystemEvent(eventID SIMCONNECT_CLIENT_EVENT_ID) error {
+	if !c.isOpen {
+		return fmt.Errorf("client is not open")
+	}
+
+	// Get the SimConnect_UnsubscribeFromSystemEvent function from DLL
+	proc := c.dll.NewProc("SimConnect_UnsubscribeFromSystemEvent")
+
+	// Call SimConnect_UnsubscribeFromSystemEvent
+	// HRESULT SimConnect_UnsubscribeFromSystemEvent(HANDLE hSimConnect, SIMCONNECT_CLIENT_EVENT_ID EventID)
+	r1, _, _ := proc.Call(
+		c.handle,         // hSimConnect
+		uintptr(eventID), // EventID
+	)
+
+	hresult := uint32(r1)
+	if !IsHRESULTSuccess(hresult) {
+		return NewSimConnectError("SimConnect_UnsubscribeFromSystemEvent", hresult, GetHRESULTMessage(hresult))
+	}
+
+	return nil
+}
+
+// SetSystemEventState sets the state of a system event (ON/OFF)
+// Implements SimConnect_SetSystemEventState function
+func (c *Client) SetSystemEventState(eventID SIMCONNECT_CLIENT_EVENT_ID, state SIMCONNECT_STATE) error {
+	if !c.isOpen {
+		return fmt.Errorf("client is not open")
+	}
+
+	// Get the SimConnect_SetSystemEventState function from DLL
+	proc := c.dll.NewProc("SimConnect_SetSystemEventState")
+
+	// Call SimConnect_SetSystemEventState
+	// HRESULT SimConnect_SetSystemEventState(HANDLE hSimConnect, SIMCONNECT_CLIENT_EVENT_ID EventID, SIMCONNECT_STATE State)
+	r1, _, _ := proc.Call(
+		c.handle,         // hSimConnect
+		uintptr(eventID), // EventID
+		uintptr(state),   // State (ON/OFF)
+	)
+
+	hresult := uint32(r1)
+	if !IsHRESULTSuccess(hresult) {
+		return NewSimConnectError("SimConnect_SetSystemEventState", hresult, GetHRESULTMessage(hresult))
+	}
+
+	return nil
+}
+
+// GetSystemEvent retrieves the next system event from SimConnect
+// Returns nil if no event is available or the message is not an event
+func (c *Client) GetSystemEvent() (*SystemEventData, error) {
+	if !c.isOpen {
+		return nil, fmt.Errorf("client is not open")
+	}
+
+	// Get raw message data
+	data, err := c.GetRawDispatch()
+	if err != nil {
+		return nil, err
+	}
+
+	if data == nil {
+		return nil, nil // No message available
+	}
+
+	// Check message type
+	msgType, err := ParseMessageType(data)
+	if err != nil {
+		return nil, err
+	}
+
+	// Handle different event message types
+	switch msgType {
+	case SIMCONNECT_RECV_ID_EVENT:
+		// Parse basic event
+		event, err := ParseEvent(data)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SystemEventData{
+			EventID:   SIMCONNECT_CLIENT_EVENT_ID(event.EventID),
+			EventName: c.getEventNameFromID(SIMCONNECT_CLIENT_EVENT_ID(event.EventID)),
+			Data:      event.Data,
+			EventType: "basic",
+		}, nil
+
+	case SIMCONNECT_RECV_ID_EVENT_FILENAME:
+		// Parse filename event
+		event, err := ParseEventFilename(data)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SystemEventData{
+			EventID:   SIMCONNECT_CLIENT_EVENT_ID(event.EventID),
+			EventName: c.getEventNameFromID(SIMCONNECT_CLIENT_EVENT_ID(event.EventID)),
+			Data:      event.Data,
+			Filename:  c.cStringToGoString(event.SzFileName[:]),
+			EventType: "filename",
+		}, nil
+
+	case SIMCONNECT_RECV_ID_EVENT_OBJECT_ADDREMOVE:
+		// Parse object add/remove event
+		event, err := ParseEventObjectAddRemove(data)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SystemEventData{
+			EventID:   SIMCONNECT_CLIENT_EVENT_ID(event.EventID),
+			EventName: c.getEventNameFromID(SIMCONNECT_CLIENT_EVENT_ID(event.EventID)),
+			Data:      event.Data,
+			ObjectID:  event.ObjectID,
+			EventType: "object",
+		}, nil
+
+	case SIMCONNECT_RECV_ID_EVENT_FRAME:
+		// Parse frame event
+		event, err := ParseEventFrame(data)
+		if err != nil {
+			return nil, err
+		}
+
+		return &SystemEventData{
+			EventID:   SIMCONNECT_CLIENT_EVENT_ID(event.EventID),
+			EventName: c.getEventNameFromID(SIMCONNECT_CLIENT_EVENT_ID(event.EventID)),
+			Data:      event.Data,
+			EventType: "frame",
+		}, nil
+
+	default:
+		// Not an event message
+		return nil, nil
+	}
+}
+
+// cStringToGoString converts a null-terminated C string byte array to Go string
+func (c *Client) cStringToGoString(data []byte) string {
+	for i, b := range data {
+		if b == 0 {
+			return string(data[:i])
+		}
+	}
+	return string(data)
+}
+
+// getEventNameFromID maps event IDs back to human-readable names
+// This is a helper function for debugging and logging
+func (c *Client) getEventNameFromID(eventID SIMCONNECT_CLIENT_EVENT_ID) string {
+	// In a real implementation, you would maintain a mapping of event IDs to names
+	// For now, we'll return a generic format
+	return fmt.Sprintf("Event_%d", eventID)
+}
